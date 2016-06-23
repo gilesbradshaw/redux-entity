@@ -1,0 +1,104 @@
+{
+  "_args": [
+    [
+      "rxjs-to-async-iterator",
+      "/Users/giles/react-redux-starter-kit"
+    ]
+  ],
+  "_from": "rxjs-to-async-iterator@latest",
+  "_id": "rxjs-to-async-iterator@2.1.1",
+  "_inCache": true,
+  "_installable": true,
+  "_location": "/rxjs-to-async-iterator",
+  "_nodeVersion": "6.1.0",
+  "_npmOperationalInternal": {
+    "host": "packages-16-east.internal.npmjs.com",
+    "tmp": "tmp/rxjs-to-async-iterator-2.1.1.tgz_1464050750432_0.6425586473196745"
+  },
+  "_npmUser": {
+    "email": "code@tangledfruit.com",
+    "name": "tangledfruit"
+  },
+  "_npmVersion": "3.8.6",
+  "_phantomChildren": {},
+  "_requested": {
+    "name": "rxjs-to-async-iterator",
+    "raw": "rxjs-to-async-iterator",
+    "rawSpec": "",
+    "scope": null,
+    "spec": "latest",
+    "type": "tag"
+  },
+  "_requiredBy": [
+    "#DEV:/"
+  ],
+  "_resolved": "https://registry.npmjs.org/rxjs-to-async-iterator/-/rxjs-to-async-iterator-2.1.1.tgz",
+  "_shasum": "2a60c565941dc081036745f92651939c7f1cab24",
+  "_shrinkwrap": null,
+  "_spec": "rxjs-to-async-iterator",
+  "_where": "/Users/giles/react-redux-starter-kit",
+  "author": {
+    "name": "tangledfruit"
+  },
+  "bugs": {
+    "url": "https://github.com/tangledfruit/rxjs-to-async-iterator/issues"
+  },
+  "dependencies": {
+    "rxjs": ">=5.0.0-beta.6"
+  },
+  "description": "Convert RxJS Observable streams to async iterators (for RxJS 5.0+)",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "co": "^4.6.0",
+    "co-mocha": "^1.1.2",
+    "coveralls": "^2.11.9",
+    "istanbul": "^0.4.3",
+    "mocha": "^2.5.1",
+    "semistandard": "^8.0.0"
+  },
+  "directories": {},
+  "dist": {
+    "shasum": "2a60c565941dc081036745f92651939c7f1cab24",
+    "tarball": "https://registry.npmjs.org/rxjs-to-async-iterator/-/rxjs-to-async-iterator-2.1.1.tgz"
+  },
+  "engineStrict": true,
+  "engines": {
+    "node": ">=4",
+    "npm": ">=3"
+  },
+  "gitHead": "369cc4652eae6866376319945972337d161f4963",
+  "homepage": "https://github.com/tangledfruit/rxjs-to-async-iterator#readme",
+  "keywords": [
+    "RxJS",
+    "RxJS5",
+    "iterator",
+    "async"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "maintainers": [
+    {
+      "email": "code@tangledfruit.com",
+      "name": "tangledfruit"
+    }
+  ],
+  "name": "rxjs-to-async-iterator",
+  "optionalDependencies": {},
+  "readme": "ERROR: No README data found!",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tangledfruit/rxjs-to-async-iterator.git"
+  },
+  "scripts": {
+    "test": "semistandard && mocha",
+    "test-travis": "semistandard && ./node_modules/istanbul/lib/cli.js cover ./node_modules/mocha/bin/_mocha -- -R spec ./test/*"
+  },
+  "semistandard": {
+    "globals": [
+      "before",
+      "describe",
+      "it"
+    ]
+  },
+  "version": "2.1.1"
+}
