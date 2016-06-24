@@ -114,7 +114,7 @@ webpackConfig.module.loaders = [{
   loader: 'babel',
   query: {
     cacheDirectory: true,
-    plugins: ['transform-runtime', 'babel-plugin-transform-decorators-legacy'],
+    plugins: ['transform-runtime'],
     presets: ['es2015', 'stage-0'],
   }
 },
