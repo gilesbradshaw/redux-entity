@@ -1,8 +1,8 @@
-'use strict';
+'use strict'
 
-const Rx = require('rxjs');
+const Rx = require('rxjs')
 
-const doneSentinel = {};
+const doneSentinel = {}
 
 /**
  * Accepts an RxJS Observable object and converts it to an ES6 generator
@@ -11,128 +11,128 @@ const doneSentinel = {};
 
 class AsyncIterator {
   constructor (observable) {
-    this._observable = observable;
+    this._observable = observable
   }
 
   * iter () {
-    let isDone = false;
+    let isDone = false
 
-    let pendingCallback;
-    let pendingValues = [];
+    let pendingCallback
+    let pendingValues = []
       // TO DO: Look for a more efficient queue implementation.
 
     const callTheCallback = (callback, pendingValue) => {
       if (pendingValue.value === doneSentinel) {
-        isDone = true;
+        isDone = true
       }
-      callback(pendingValue.err, pendingValue.value);
-    };
+      callback(pendingValue.err, pendingValue.value)
+    }
 
     const produce = pendingValue => {
       if (pendingCallback) {
-        const cb = pendingCallback;
-        pendingCallback = null;
-        callTheCallback(cb, pendingValue);
+        const cb = pendingCallback
+        pendingCallback = null
+        callTheCallback(cb, pendingValue)
       } else {
-        pendingValues.push(pendingValue);
+        pendingValues.push(pendingValue)
       }
-    };
+    }
 
     this._subscribeHandle = this._observable.subscribe(
       value => produce({err: null, value: value}),
       err => produce({err: err, value: null}),
-      () => produce({err: null, value: doneSentinel}));
+      () => produce({err: null, value: doneSentinel}))
 
     const consumeViaCallback = () => {
       return cb => {
-        let item = pendingValues.shift();
+        let item = pendingValues.shift()
         if (item === undefined) {
-          pendingCallback = cb;
+          pendingCallback = cb
         } else {
-          callTheCallback(cb, item);
+          callTheCallback(cb, item)
         }
-      };
-    };
+      }
+    }
 
     while (!isDone) { // eslint-disable-line no-unmodified-loop-condition
                       // isDone gets modified in callTheCallback, above.
-      yield consumeViaCallback();
+      yield consumeViaCallback()
     }
   }
 
   makeIter () {
-    let result = this.iter();
+    let result = this.iter()
 
     result.nextValue = function * () {
-      let item = yield this._iter.next();
+      let item = yield this._iter.next()
       if (item.value === doneSentinel) {
-        throw new Error('Expected next notification, got complete instead');
+        throw new Error('Expected next notification, got complete instead')
       }
-      return item.value;
-    }.bind(this);
+      return item.value
+    }.bind(this)
 
     result.shouldComplete = function * () {
-      let item = yield this._iter.next();
+      let item = yield this._iter.next()
       if (item.value !== doneSentinel) {
-        throw new Error('Expected complete notification, got next(' + item.value + ') instead');
+        throw new Error('Expected complete notification, got next(' + item.value + ') instead')
       }
-    }.bind(this);
+    }.bind(this)
 
     result.shouldThrow = function * () {
-      let item;
+      let item
 
       try {
-        item = yield this._iter.next();
+        item = yield this._iter.next()
       } catch (err) {
-        return err;
+        return err
       }
 
       if (item.value === doneSentinel) {
-        throw new Error('Expected error notification, got complete instead');
+        throw new Error('Expected error notification, got complete instead')
       } else {
-        throw new Error('Expected error notification, got next(' + item.value + ') instead');
+        throw new Error('Expected error notification, got next(' + item.value + ') instead')
       }
-    }.bind(this);
+    }.bind(this)
 
     result.unsubscribe = function () {
       if (this._subscribeHandle === undefined) {
-        throw new Error('toAsyncIterator: unsubscribing before first yield not allowed');
+        throw new Error('toAsyncIterator: unsubscribing before first yield not allowed')
       }
 
       // Quietly ignore second unsubscribe attempt.
 
       if (this._subscribeHandle) {
-        this._subscribeHandle.unsubscribe();
-        this._subscribeHandle = false;
+        this._subscribeHandle.unsubscribe()
+        this._subscribeHandle = false
       }
-    }.bind(this);
+    }.bind(this)
 
-    this._iter = result;
-    return result;
+    this._iter = result
+    return result
   }
 }
 
 Rx.Observable.prototype.shouldBeEmpty = function * () {
-  yield this.toAsyncIterator().shouldComplete();
-};
+  yield this.toAsyncIterator().shouldComplete()
+}
 
 Rx.Observable.prototype.shouldGenerateOneValue = function * () {
-  let iterator = this.toAsyncIterator();
-  let value = yield iterator.nextValue();
-  yield iterator.shouldComplete();
-  return value;
-};
+  let iterator = this.toAsyncIterator()
+  let value = yield iterator.nextValue()
+  yield iterator.shouldComplete()
+  return value
+}
 
 Rx.Observable.prototype.shouldThrow = function * () {
-  let err = yield this.toAsyncIterator().shouldThrow();
-  return err;
-};
+  let err = yield this.toAsyncIterator().shouldThrow()
+  return err
+}
 
 /**
  * Define a toAsyncIterator operator on Rx.Observable.
  */
 
 Rx.Observable.prototype.toAsyncIterator = function () {
-  const iter = new AsyncIterator(this);
-  return iter.makeIter();
-};
+  const iter = new AsyncIterator(this)
+  return iter.makeIter()
+}

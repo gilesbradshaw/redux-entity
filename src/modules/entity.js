@@ -332,7 +332,9 @@ const getModule = ({
       ...state,
       data: {
         ...state.data,
-        Values: state.data && state.data.Values ? state.data.Values.filter(value => !value.isNew || value.Id != action.id) : []
+        Values: state.data && state.data.Values 
+          ? state.data.Values.filter(value => !value.isNew || value.Id != action.id) 
+          : []
       },
       editing: {
         ...state.editing, 

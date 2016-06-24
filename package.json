@@ -1,6 +1,6 @@
 {
   "name": "redux-entity",
-  "version": "0.0.0-alpha.0",
+  "version": "0.0.0-alpha.1",
   "description": "Real time CRUD redux module",
   "main": "lib/entity.js",
   "engines": {
@@ -8,66 +8,19 @@
     "npm": "^3.0.0"
   },
   "scripts": {
-    "clean": "rimraf dist",
     "clean:lib": "rimraf lib",
-    "build:commonjs": "better-npm-run build:commonjs",
-    "compile": "better-npm-run compile",
-    "lint": "eslint src tests server",
+    "build": "better-npm-run build",
+    "lint": "eslint src tests",
     "lint:fix": "npm run lint -- --fix",
-    "start": "better-npm-run start",
-    "dev": "better-npm-run dev",
-    "dev:no-debug": "npm run dev -- --no_debug",
     "test": "better-npm-run test",
     "test:dev": "npm run test -- --watch",
-    "deploy": "better-npm-run deploy",
-    "deploy:dev": "better-npm-run deploy:dev",
-    "deploy:prod": "better-npm-run deploy:prod",
     "codecov": "cat coverage/*/lcov.info | codecov"
   },
   "betterScripts": {
-    "build:commonjs": {
+    "build": {
       "command": "npm run clean:lib && cross-env BABEL_ENV=commonjs babel src/modules --out-dir lib",
       "env": {
         "NODE_ENV": "production",
-        "DEBUG": "app:*"
-      }
-    },
-    "compile": {
-      "command": "babel-node bin/compile",
-      "env": {
-        "DEBUG": "app:*"
-      }
-    },
-    "dev": {
-      "command": "nodemon --exec babel-node bin/server",
-      "env": {
-        "NODE_ENV": "development",
-        "DEBUG": "app:*"
-      }
-    },
-    "deploy": {
-      "command": "npm run clean && npm run compile",
-      "env": {
-        "DEBUG": "app:*"
-      }
-    },
-    "deploy:dev": {
-      "command": "npm run deploy",
-      "env": {
-        "NODE_ENV": "development",
-        "DEBUG": "app:*"
-      }
-    },
-    "deploy:prod": {
-      "command": "npm run deploy",
-      "env": {
-        "NODE_ENV": "production",
-        "DEBUG": "app:*"
-      }
-    },
-    "start": {
-      "command": "babel-node bin/server",
-      "env": {
         "DEBUG": "app:*"
       }
     },
@@ -84,7 +37,7 @@
     "url": "git+https://github.com/gilesbradshaw/redux-entity.git"
   },
   "author": "Giles Bradshaw <giles.bradshaw@8Technology.com> (http://8-technology.co.uk/)",
-  "license": "MIT",
+  "license": "Closed source",
   "dependencies": {
     "rxjs": "^5.0.0-beta.8"
   },

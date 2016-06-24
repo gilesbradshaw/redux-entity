@@ -1401,7 +1401,10 @@ describe('(Redux Module) Nodes', () => {
         it('join signalR and call api', function *(){
           getLoadDefaults.returns({ default: 'testGetDefaults'})
           getJoinId.returns('test join Id')
-          const iter = load('testLoadConfig')({signalR, apiClient})(actions, {dispatch: _dispatchSpy, getState: _getStateSpy}).toAsyncIterator()
+          const iter = load('testLoadConfig')({signalR, apiClient})(actions, {
+            dispatch: _dispatchSpy, 
+            getState: _getStateSpy
+          }).toAsyncIterator()
           expect(getLoadDefaults.getCall(0).args[0]).to.equal('testLoadConfig')
           
           getLoadPath.returns('testLoadPath')
@@ -1604,7 +1607,10 @@ describe('(Redux Module) Nodes', () => {
           getLoadDefaults.returns({ default: 'testGetDefaults'})
           getLoadPath.returns('testLoadPath')
           
-          const iter = loadMore('testLoadConfig')({apiClient})(actions, {dispatch: _dispatchSpy, getState: _getStateSpy}).toAsyncIterator()
+          const iter = loadMore('testLoadConfig')({apiClient})(actions, {
+            dispatch: _dispatchSpy, 
+            getState: _getStateSpy
+          }).toAsyncIterator()
           expect(getLoadDefaults.getCall(0).args[0]).to.equal('testLoadConfig')
           
           expect(yield iter.nextValue()).to.eql({
@@ -1710,7 +1716,10 @@ describe('(Redux Module) Nodes', () => {
             return Promise.resolve('giles')
           }
         }
-        const iter = loadSingle('testid')({signalR, apiClient})(actions, {dispatch: _dispatchSpy, getState: _getStateSpy}).toAsyncIterator()
+        const iter = loadSingle('testid')({signalR, apiClient})(actions, {
+          dispatch: _dispatchSpy, 
+          getState: _getStateSpy
+        }).toAsyncIterator()
         yield iter.nextValue()
         yield iter.nextValue()
         expect(getJoinSingleId.getCall(0).args[0]).to.equal('testid')
@@ -1735,7 +1744,10 @@ describe('(Redux Module) Nodes', () => {
             return new Promise((resolve)=>setTimeout(()=>resolve('giles'),100))
           })
         }
-        const iter = load({})({signalR, apiClient})(actions, {dispatch: _dispatchSpy, getState: _getStateSpy}).toAsyncIterator()
+        const iter = load({})({signalR, apiClient})(actions, {
+          dispatch: _dispatchSpy, 
+          getState: _getStateSpy
+        }).toAsyncIterator()
         
         
         expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD, payload: {isDeleted: false}})
@@ -1761,7 +1773,10 @@ describe('(Redux Module) Nodes', () => {
             return Promise.resolve('giles')
           })
         }
-        const iter = load({})({signalR, apiClient})(actions, {dispatch: _dispatchSpy, getState: _getStateSpy}).toAsyncIterator()
+        const iter = load({})({signalR, apiClient})(actions, {
+          dispatch: _dispatchSpy, 
+          getState: _getStateSpy
+        }).toAsyncIterator()
         
         
         expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD, payload: {isDeleted: false}})
@@ -1781,7 +1796,10 @@ describe('(Redux Module) Nodes', () => {
         const apiClient = {
           get: sinon.spy(()=> Promise.reject('giles'))
         }
-        const iter = load({})({signalR, apiClient})(actions, {dispatch: _dispatchSpy, getState: _getStateSpy}).toAsyncIterator()
+        const iter = load({})({signalR, apiClient})(actions, {
+          dispatch: _dispatchSpy, 
+          getState: _getStateSpy
+        }).toAsyncIterator()
         
         expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD, payload: {isDeleted: false}})
         
