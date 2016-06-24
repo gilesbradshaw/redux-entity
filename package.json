@@ -1,8 +1,8 @@
 {
-  "name": "react-redux-starter-kit",
-  "version": "3.0.0-alpha.0",
+  "name": "entity-module",
+  "version": "0.0.0-alpha.0",
   "description": "Get started with React, Redux, and React-Router!",
-  "main": "index.js",
+  "main": "lib/entity.js",
   "engines": {
     "node": ">=4.2.0",
     "npm": "^3.0.0"
@@ -81,9 +81,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davezuko/react-redux-starter-kit.git"
+    "url": "git+https://github.com/gilesbradshaw/redux-entity.git"
   },
-  "author": "David Zukowski <david@zuko.me> (http://zuko.me)",
+  "author": "Giles Bradshaw <giles.bradshaw@8Technology.com> (http://8-technology.co.uk/)",
   "license": "MIT",
   "dependencies": {
     "rxjs": "^5.0.0-beta.8"
