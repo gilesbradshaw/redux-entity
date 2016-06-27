@@ -60,7 +60,7 @@ const getModule = ({
 
   const join = (joinConfig) => ({signalR, apiClient}) => {
     const joinId = getJoinId(joinConfig) 
-    return Rx.Observable.fromPromise(signalR)
+    return signalR
       .flatMap(subscriber => {
         return subscriber.join(joinId).flatMap(messages => {
           return Rx.Observable.of(messages.map(message => {
@@ -85,7 +85,7 @@ const getModule = ({
 
   const joinSingle = (id) => ({signalR, apiClient}) => {
     const joinSingleId = getJoinSingleId(id)
-    return Rx.Observable.fromPromise(signalR)
+    return signalR
       .flatMap(subscriber => {
         return subscriber.join(joinSingleId).flatMap(messages=>{
           return Rx.Observable.of(messages.map(message=>{

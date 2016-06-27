@@ -1387,9 +1387,7 @@ describe('(Redux Module) Nodes', () => {
           ENTITIES_UPDATE_DELETE = testModule.constants.ENTITIES_UPDATE_DELETE
           joinMessages = new Rx.Subject()
           joinSpy = sinon.spy(()=> Rx.Observable.of(joinMessages))
-          signalR = Promise.resolve({
-            join: joinSpy
-          })
+          signalR = Rx.Observable.of({join:joinSpy})
           
           apiClient = {
             get: sinon.spy(()=> {
@@ -1478,13 +1476,12 @@ describe('(Redux Module) Nodes', () => {
 
         it('Should play all notifications since api called.', function *() {
           
-          const signalR = Promise.resolve({
+          const signalR = Rx.Observable.of({
             join: ()=> Rx.Observable.of(Rx.Observable.of(
               {message: {method: 'post', value: 'postValue'}},
               {message: {method: 'put', value: 'putValue'}},
               {message: {method: 'delete', id: 'deleteValue'}}
-            )),
-            
+            ))
           })
           
           const apiClient = {
@@ -1524,7 +1521,7 @@ describe('(Redux Module) Nodes', () => {
         })
         
         it('Should return an observable that operates on signalR fail.', function *() {
-          const signalR = Promise.reject()
+          const signalR =  Rx.Observable.throw()
           
           const apiClient = {
             get: sinon.spy(()=> {
@@ -1546,7 +1543,7 @@ describe('(Redux Module) Nodes', () => {
         })
         it('Should return an observable that operates on fail.', function *() {
           const joinMessages = new Rx.Subject()
-          const signalR = Promise.resolve({
+          const signalR = Rx.Observable.of({
             join: ()=> Rx.Observable.of(joinMessages),
             
           })
@@ -1646,7 +1643,7 @@ describe('(Redux Module) Nodes', () => {
       it('Should return an observable that operates.', function *() {
         const joinMessages = new Rx.Subject()
         
-        const signalR = Promise.resolve({
+        const signalR = Rx.Observable.of({
           join: ()=> Rx.Observable.of(joinMessages),
           
         })
@@ -1709,7 +1706,7 @@ describe('(Redux Module) Nodes', () => {
           join: sinon.spy(()=> Rx.Observable.of(joinMessages)),
           
         }
-        const signalR = Promise.resolve(joinResult)
+        const signalR = Rx.Observable.of(joinResult)
         getJoinSingleId.returns('test me')
         const apiClient = {
           get: ()=> {
@@ -1730,7 +1727,7 @@ describe('(Redux Module) Nodes', () => {
       })
       it('Should play all notifications since api called.', function *() {
         return
-        const signalR = Promise.resolve({
+        const signalR = Rx.Observable.of({
           join: ()=> Rx.Observable.of(Rx.Observable.of(
             {message: {method: 'post', value: 'postValue'}},
             {message: {method: 'put', value: 'putValue'}},
@@ -1766,7 +1763,7 @@ describe('(Redux Module) Nodes', () => {
       
       it('Should return an observable that operates on signalR fail.', function *() {
         return
-        const signalR = Promise.reject()
+        const signalR = Rx.Observable.of()
         
         const apiClient = {
           get: sinon.spy(()=> {
@@ -1788,7 +1785,7 @@ describe('(Redux Module) Nodes', () => {
       it('Should return an observable that operates on fail.', function *() {
         return
         const joinMessages = new Rx.Subject()
-        const signalR = Promise.resolve({
+        const signalR = Rx.Observable.of({
           join: ()=> Rx.Observable.of(joinMessages),
           
         })
