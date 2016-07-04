@@ -196,7 +196,7 @@ const getModule = ({
   }
   const saveErrorCancel = (id) => ({ type: ENTITIES_SAVE_FAIL_CANCEL, id })
   
-  const save = (values)=> ({apiClient}) => {
+  const save = (values, keepEditing)=> ({apiClient}) => {
     if(!values.isNew) {
        const putPath = getPutPath(values)
       return (actions, {getState}) => Rx.Observable.fromPromise(
@@ -204,7 +204,7 @@ const getModule = ({
         apiClient.put(putPath, {
             data: values
           })
-        ).flatMap(result=>Rx.Observable.of({type: ENTITIES_SAVE_SUCCESS, id: values.Id}))
+        ).flatMap(result=>Rx.Observable.of({type: ENTITIES_SAVE_SUCCESS, id: values.Id, keepEditing}))
         .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))  
         .startWith({type: ENTITIES_SAVE, values})
     } else {
@@ -357,7 +357,7 @@ const getModule = ({
       ...state, 
       editing: {
         ...state.editing, 
-        [action.id]: false
+        [action.id]: (action.keepEditing ? state.editing[action.id] : false)
       }, 
       saving: {
         ...state.saving, 

@@ -654,7 +654,34 @@ describe('(Redux Module) Nodes', () => {
           }
         })
       })
+      it('Should be reduced with type ENTITIES_SAVE_SUCCESS. keepEditing', () => {
+        const res = reducer({
+          giles: 'test', 
+          saving: {
+            testMe: true, 
+            giles: true
+          }, 
+          editing: {
+            testMe: 'keep me'
+          }
+        }, {
+          type: ENTITIES_SAVE_SUCCESS, 
+          id: 'testMe',
+          keepEditing: true
+        })
+        expect(res).to.eql({
+          giles: 'test', 
+          saving: {
+            testMe: false, 
+            giles: true
+          }, 
+          editing: {
+            testMe: 'keep me'
+          }
+        })
+      })
     })
+    
     describe('type: ENTITIES_SAVE_FAIL', () => {
 
      let ENTITIES_SAVE_FAIL
@@ -1387,7 +1414,7 @@ describe('(Redux Module) Nodes', () => {
           ENTITIES_UPDATE_DELETE = testModule.constants.ENTITIES_UPDATE_DELETE
           joinMessages = new Rx.Subject()
           joinSpy = sinon.spy(()=> Rx.Observable.of(joinMessages))
-          signalR = Rx.Observable.of({join:joinSpy})
+          signalR = ()=> Rx.Observable.of({join:joinSpy})
           
           apiClient = {
             get: sinon.spy(()=> {
@@ -1476,7 +1503,7 @@ describe('(Redux Module) Nodes', () => {
 
         it('Should play all notifications since api called.', function *() {
           
-          const signalR = Rx.Observable.of({
+          const signalR = ()=> Rx.Observable.of({
             join: ()=> Rx.Observable.of(Rx.Observable.of(
               {message: {method: 'post', value: 'postValue'}},
               {message: {method: 'put', value: 'putValue'}},
@@ -1521,7 +1548,7 @@ describe('(Redux Module) Nodes', () => {
         })
         
         it('Should return an observable that operates on signalR fail.', function *() {
-          const signalR =  Rx.Observable.throw()
+          const signalR =  ()=> Rx.Observable.throw()
           
           const apiClient = {
             get: sinon.spy(()=> {
@@ -1543,7 +1570,7 @@ describe('(Redux Module) Nodes', () => {
         })
         it('Should return an observable that operates on fail.', function *() {
           const joinMessages = new Rx.Subject()
-          const signalR = Rx.Observable.of({
+          const signalR = ()=>Rx.Observable.of({
             join: ()=> Rx.Observable.of(joinMessages),
             
           })
@@ -1643,7 +1670,7 @@ describe('(Redux Module) Nodes', () => {
       it('Should return an observable that operates.', function *() {
         const joinMessages = new Rx.Subject()
         
-        const signalR = Rx.Observable.of({
+        const signalR = ()=>Rx.Observable.of({
           join: ()=> Rx.Observable.of(joinMessages),
           
         })
@@ -1706,7 +1733,7 @@ describe('(Redux Module) Nodes', () => {
           join: sinon.spy(()=> Rx.Observable.of(joinMessages)),
           
         }
-        const signalR = Rx.Observable.of(joinResult)
+        const signalR = ()=>Rx.Observable.of(joinResult)
         getJoinSingleId.returns('test me')
         const apiClient = {
           get: ()=> {
@@ -1727,7 +1754,7 @@ describe('(Redux Module) Nodes', () => {
       })
       it('Should play all notifications since api called.', function *() {
         return
-        const signalR = Rx.Observable.of({
+        const signalR = ()=>Rx.Observable.of({
           join: ()=> Rx.Observable.of(Rx.Observable.of(
             {message: {method: 'post', value: 'postValue'}},
             {message: {method: 'put', value: 'putValue'}},
@@ -1785,7 +1812,7 @@ describe('(Redux Module) Nodes', () => {
       it('Should return an observable that operates on fail.', function *() {
         return
         const joinMessages = new Rx.Subject()
-        const signalR = Rx.Observable.of({
+        const signalR = ()=>Rx.Observable.of({
           join: ()=> Rx.Observable.of(joinMessages),
           
         })
@@ -1843,14 +1870,42 @@ describe('(Redux Module) Nodes', () => {
             Id: 'testId'
           }
         })
-        //expect(yield iter.nextValue()).to.eql({
-        //  type: testModule.constants.ENTITIES_UPDATE_PUT, 
-        //  payload: 'editied data'
-        //})
+        expect(yield iter.nextValue()).to.eql({
+          type: testModule.constants.ENTITIES_SAVE_SUCCESS,
+          id: 'testId',
+          keepEditing: undefined
+        })
+                
+        yield iter.shouldComplete()
+        
+        iter.unsubscribe()
+      })
+      it('Should return an observable that operates when put. keepEditing = true', function *() {
+        
+        const apiClient = {
+          put: sinon.spy(()=> Promise.resolve('editied data'))
+        }
+        getPutPath.returns('test put path')
+        const iter = save({Id: 'testId'}, true)({apiClient})(undefined, {
+          dispatch: _dispatchSpy, 
+          getState: _getStateSpy
+        }).toAsyncIterator()
+        
+        expect(getPutPath.getCall(0).args[0]).to.eql({Id: 'testId'})
+        expect(apiClient.put.getCall(0).args[0]).to.equal('test put path')
+        
+        expect(apiClient.put.getCall(0).args[1]).to.eql({data: {Id: 'testId'}})
+        expect(yield iter.nextValue()).to.eql({
+          type: testModule.constants.ENTITIES_SAVE, 
+          values: {
+            Id: 'testId'
+          }
+        })
                 
         expect(yield iter.nextValue()).to.eql({
           type: testModule.constants.ENTITIES_SAVE_SUCCESS,
-          id: 'testId'
+          id: 'testId',
+          keepEditing: true
         })
                 
         yield iter.shouldComplete()
