@@ -1,4 +1,4 @@
-import { configureModule, entityModule } from 'modules/entity'
+import { configureModule, entityModule } from 'module'
 
 require('co-mocha')
 

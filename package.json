@@ -2,7 +2,7 @@
   "name": "redux-entity",
   "version": "0.0.0-alpha.1",
   "description": "Real time CRUD redux module",
-  "main": "lib/entity.js",
+  "main": "lib/index.js",
   "engines": {
     "node": ">=4.2.0",
     "npm": "^3.0.0"
@@ -18,7 +18,7 @@
   },
   "betterScripts": {
     "build": {
-      "command": "npm run clean:lib && cross-env BABEL_ENV=commonjs babel src/modules --out-dir lib",
+      "command": "npm run clean:lib && cross-env BABEL_ENV=commonjs babel src/module --out-dir lib",
       "env": {
         "NODE_ENV": "production",
         "DEBUG": "app:*"
