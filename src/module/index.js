@@ -58,7 +58,7 @@ const getModule = ({
 
 
 
-  const join = (joinConfig) => ({signalR, apiClient}) => {
+  const join = (joinConfig = {}) => ({signalR, apiClient}) => {
     const joinId = getJoinId(joinConfig) 
     return signalR()
       .flatMap(subscriber => {
@@ -158,14 +158,16 @@ const getModule = ({
       }
     }
 
-  const loadSingle = (id, loadNode) => ({signalR, apiClient}) => {
+  const loadSingle = (id, then) => ({signalR, apiClient}) => {
     const singlePath = getSinglePath(id)
     return (actions, {getState, dispatch}) => {
       return joinSingle(id)({signalR, apiClient})
         .flatMap(changes => {
           const observedMessages = replayer(changes)
           return Rx.Observable.fromPromise(apiClient.get(singlePath))
-            .do(result => loadNode && dispatch(loadNode(result.ParentId)))
+            .do(result => {
+              then && then(dispatch)(result)
+            })
             .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result}))
             .concat(observedMessages)
             .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
@@ -364,19 +366,17 @@ const getModule = ({
         [action.id]: false
       }
     }),
-    [ENTITIES_SAVE_FAIL]: (state, action) => {
-      return ({
-        ...state, 
-        saving: {
-          ...state.saving, 
-          [action.id]: false
-        }, 
-        saveError: {
-          ...state.saveError, 
-          [action.id]: action.error
-        }
-      })
-    },
+    [ENTITIES_SAVE_FAIL]: (state, action) => ({
+      ...state, 
+      saving: {
+        ...state.saving, 
+        [action.id]: false
+      }, 
+      saveError: {
+        ...state.saveError, 
+        [action.id]: action.error
+      }
+    }),
     [ENTITIES_SAVE_FAIL_CANCEL]: (state, action) => {
       return ({
         ...state, 
@@ -532,9 +532,6 @@ const getModule = ({
   const initialState = {loadOrder: 'Name', loadDeleted: 'false'}
   function reducer (state = initialState, action) {
     const handler = ACTION_HANDLERS[action.type]
-    if(handler) {
-      console.log(action.type)
-    }
     return handler ? handler(state, action) : state
   }
 
