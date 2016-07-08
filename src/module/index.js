@@ -118,7 +118,7 @@ const getModule = ({
       return () => subscription.unsubscribe()
     })
   }
-  const load = (loadConfig) => 
+  const load = (loadConfig={}) => 
     ({signalR, apiClient}) => {
       const loadDefaults = getLoadDefaults(loadConfig)
       return (actions, {getState}) => {
