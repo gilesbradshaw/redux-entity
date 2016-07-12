@@ -6,10 +6,6 @@ require('./rxjs-to-async-iterator')
 
 const Rx = require('rxjs')
 
-
-/// to do - entities save error
-
-
     
 describe('(Redux Module) Nodes', () => {
   let testModule
@@ -1092,7 +1088,6 @@ describe('(Redux Module) Nodes', () => {
       })
     })
     describe('type: ENTITIES_UPDATE_DELETE', () => {
-      return   
       let ENTITIES_UPDATE_DELETE
     
       beforeEach(() => {
@@ -1103,7 +1098,7 @@ describe('(Redux Module) Nodes', () => {
         const state = {
           giles: 'test', 
           data:{
-            TotalCount:2,
+            TotalCount: 2,
             Values:[
               {
                 Id:'testId'
@@ -1116,9 +1111,7 @@ describe('(Redux Module) Nodes', () => {
         const res = reducer(state, {type:ENTITIES_UPDATE_DELETE, id: 'testId'})
         expect(res).to.eql({
           'giles':'test', 
-          deleting: {
-            testId: false
-          }, 'data': {
+          'data': {
             TotalCount: 1, 
             Values:[
               {

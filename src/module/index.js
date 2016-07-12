@@ -415,6 +415,7 @@ const getModule = ({
       }
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
+      
       const deleted = state.loadDeleted && state.loadDeleted!=='false'
       const totalCountChange = !deleted ? 1 : 0 
       const found = state.data.Values.find(state => state.Id === action.payload.Id)
@@ -424,8 +425,6 @@ const getModule = ({
       } else {
         state.data.Values.push(action.payload)
       }
-
-      const ah = orderData(state.data.Values, state)
       return {
         ...state, 
         data: {
@@ -435,15 +434,14 @@ const getModule = ({
         }
       }
     },
+    //nb delete guarantees the subscribed data will have lost an entity
+    //ie its not for CRUD deletes. CRUD deletes are puts with IsDeleted=true
     [ENTITIES_UPDATE_DELETE]: (state, action) => {
       return {
         ...state, 
-        deleting: {
-          ...state.deleting, 
-          [action.id]: false
-        }, 
         data: {
-          ...state.data, 
+          ...state.data,
+          TotalCount: state.data.TotalCount-1, 
           Values: state.data.Values.filter(state => state.Id !== action.id)
         }
       }
