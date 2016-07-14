@@ -138,7 +138,7 @@ describe('(Redux Module) Nodes', () => {
     })
 
     it('Should initialize with an initial state.', () => {
-      expect(reducer(undefined, {})).to.eql({loadOrder: 'Name', loadDeleted: 'false'})
+      expect(reducer(undefined, {})).to.eql({loadOrder: 'Name', loadDeleted: false})
     })
 
     it('Should return the previous state if an action was not matched.', () => {
@@ -315,7 +315,7 @@ describe('(Redux Module) Nodes', () => {
           giles: 'test', 
           error: null, 
           loading: true, 
-          loadDeleted: 'false', 
+          loadDeleted: false, 
           loadOrder: 'Name'
         })
       })
@@ -326,14 +326,14 @@ describe('(Redux Module) Nodes', () => {
         {
           type: ENTITIES_LOAD, 
           payload: {
-            isDeleted: 'true'
+            isDeleted: true
           }
         })
         expect(res).to.eql({
           giles: 'test', 
           error: null, 
           loading: true, 
-          loadDeleted: 'true', 
+          loadDeleted: true, 
           loadOrder: 'Name'
         })
       })
@@ -350,7 +350,7 @@ describe('(Redux Module) Nodes', () => {
           giles: 'test', 
           error: null, 
           loading: true, 
-          loadDeleted: 'false', 
+          loadDeleted: false, 
           loadOrder: 'orderMe'
         })
       })
@@ -850,7 +850,7 @@ describe('(Redux Module) Nodes', () => {
         const state = { 
           giles: 'test',
           loadOrder: 'Whatever',
-          loadDeleted: 'false',
+          loadDeleted: false,
           data: { 
             TotalCount: 101,
             Values: [{ 
@@ -870,7 +870,7 @@ describe('(Redux Module) Nodes', () => {
         expect(res).to.eql({ 
           giles: 'test', 
           loadOrder: 'Whatever',
-          loadDeleted: 'false',
+          loadDeleted: false,
           data: {
             TotalCount: 100,
             Values: [] 
@@ -881,7 +881,7 @@ describe('(Redux Module) Nodes', () => {
       it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required default order.', () => {
         const state = { 
           giles: 'test', 
-          loadDeleted: 'true', 
+          loadDeleted: true, 
           loadOrder: 'Id', 
           data: { 
             TotalCount: 11,
@@ -905,7 +905,7 @@ describe('(Redux Module) Nodes', () => {
         )
         expect(res).to.eql({
           'giles': 'test', 
-          loadDeleted: 'true', 
+          loadDeleted: true, 
           loadOrder: 'Id', 
           'data': { 
             TotalCount: 12,
@@ -926,7 +926,7 @@ describe('(Redux Module) Nodes', () => {
       it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required reverse order.', () => {
         const state = { 
           giles: 'test', 
-          loadDeleted: 'true', 
+          loadDeleted: true, 
           loadOrder: '-Id', 
           data: {
             TotalCount: 11,
@@ -947,7 +947,7 @@ describe('(Redux Module) Nodes', () => {
         })
         expect(res).to.eql({
           'giles': 'test', 
-          loadDeleted: 'true', 
+          loadDeleted: true, 
           loadOrder: '-Id', 
           'data': {
             TotalCount: 12,
@@ -1419,11 +1419,12 @@ describe('(Redux Module) Nodes', () => {
         it('join signalR and call api', function *(){
           getLoadDefaults.returns({ default: 'testGetDefaults'})
           getJoinId.returns('test join Id')
-          const iter = load('testLoadConfig')({signalR, apiClient})(actions, {
+          const iter = load({giles: 'giles'})({signalR, apiClient})(actions, {
             dispatch: _dispatchSpy, 
             getState: _getStateSpy
           }).toAsyncIterator()
-          expect(getLoadDefaults.getCall(0).args[0]).to.equal('testLoadConfig')
+          
+          expect(getLoadDefaults.getCall(0).args[0]).to.eql({giles: 'giles', isDeleted: undefined})
           
           getLoadPath.returns('testLoadPath')
           expect(yield iter.nextValue()).to.eql({
@@ -1440,8 +1441,7 @@ describe('(Redux Module) Nodes', () => {
             })
           
           expect(apiClient.get.getCall(0).args[0]).to.equal('testLoadPath')
-             
-          expect(getJoinId.getCall(0).args[0]).to.equal('testLoadConfig')    
+          expect(getJoinId.getCall(0).args[0]).to.eql({giles: 'giles', isDeleted: undefined})    
           expect(joinSpy.getCall(0).args[0]).to.equal('test join Id')
             
              

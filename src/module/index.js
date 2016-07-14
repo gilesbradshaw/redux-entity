@@ -120,9 +120,10 @@ const getModule = ({
   }
   const load = (loadConfig={}) => 
     ({signalR, apiClient}) => {
-      const loadDefaults = getLoadDefaults(loadConfig)
+      const _loadConfig={...loadConfig, isDeleted: loadConfig.isDeleted && loadConfig.isDeleted!='false'}
+      const loadDefaults = getLoadDefaults(_loadConfig)
       return (actions, {getState}) => {
-        return join(loadConfig)({signalR, apiClient})
+        return join(_loadConfig)({signalR, apiClient})
           .flatMap(changes => {
             const observedMessages = replayer(changes)
             const path = getLoadPath(loadDefaults)
@@ -235,7 +236,7 @@ const getModule = ({
     if(state.loadOrder) {
       const back = state.loadOrder[0] === '-'
       const field = back ? state.loadOrder.substring(1) : state.loadOrder
-      const deleted = state.loadDeleted && state.loadDeleted!=='false'
+      const deleted = state.loadDeleted 
       const ret = values
         .map(value=>value)
         .filter(value => value.IsDeleted === deleted)
@@ -270,7 +271,7 @@ const getModule = ({
       error: null, 
       loading: true, 
       loadOrder: action.payload.order || 'Name',  
-      loadDeleted: action.payload.isDeleted || 'false'
+      loadDeleted: action.payload.isDeleted || false
     }),
     [ENTITIES_LOAD_SUCCESS]: (state, action) => ({ 
       ...state,  
@@ -387,7 +388,7 @@ const getModule = ({
       })
     },
     [ENTITIES_UPDATE_PUT]: (state, action) => {
-      const deleted = state.loadDeleted && state.loadDeleted!=='false'
+      const deleted = state.loadDeleted 
       //total count changes with deletion
       const totalCountChange = deleted && action.payload.IsDeleted 
         ? 1
@@ -416,7 +417,7 @@ const getModule = ({
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
       
-      const deleted = state.loadDeleted && state.loadDeleted!=='false'
+      const deleted = state.loadDeleted 
       const totalCountChange = !deleted ? 1 : 0 
       const found = state.data.Values.find(state => state.Id === action.payload.Id)
       if (found) {
@@ -527,7 +528,7 @@ const getModule = ({
   // ------------------------------------
   // Reducer
   // ------------------------------------
-  const initialState = {loadOrder: 'Name', loadDeleted: 'false'}
+  const initialState = {loadOrder: 'Name', loadDeleted: false}
   function reducer (state = initialState, action) {
     const handler = ACTION_HANDLERS[action.type]
     return handler ? handler(state, action) : state
