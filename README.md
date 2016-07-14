@@ -1,5 +1,7 @@
 # redux-entity
 
+[![Build Status](https://travis-ci.org/gilesbradshaw/redux-entity.svg?branch=master)](https://travis-ci.org/gilesbradshaw/redux-entity)
+
 A redux module allowing CRUD with real time updates
 
 ## Install
