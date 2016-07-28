@@ -8,12 +8,15 @@ const getModule = ({
   getJoinId, 
   getJoinSingleId, 
   getLoadPath, 
-  getLoadDefaults, 
+  getLoadDefaults,
+  getLoadHasChanged = ()=>true, 
+  getLoadSingleHasChanged = ()=>true, 
   getSinglePath, 
   getPostPath,
   getPutPath,
   getDeletePath,
-  postConvert
+  postConvert,
+  signalRRetry=10000
 }) => {
   const ENTITIES_UPDATE_PUT = 'react-dealerweb/ENTITIES_UPDATE_PUT:' + name
   const ENTITIES_UPDATE_POST = 'react-dealerweb/ENTITIES_UPDATE_POST:' + name
@@ -35,10 +38,8 @@ const getModule = ({
   const ENTITY_LOAD_SUCCESS = 'react-dealerweb/ENTITY_LOAD_SUCCESS:' + name
   const ENTITY_LOAD_FAIL = 'react-dealerweb/ENTITY_LOAD_FAIL:' + name
   const ENTITY_LOAD_FAIL_CANCEL = 'react-dealerweb/ENTITY_LOAD_FAIL_CANCEL:' + name
-  const ENTITY_RESET = 'react-dealerweb/ENTITY_RESET:' + name
+  
 
-
-  const ENTITIES_RESET = 'react-dealerweb/ENTITIES_RESET:' + name
   const ENTITIES_INIT = 'react-dealerweb/ENTITIES_INIT:' + name
 
   const ENTITIES_EDIT_START = 'react-dealerweb/ENTITIES_EDIT_START:' + name
@@ -58,51 +59,48 @@ const getModule = ({
 
 
 
-  const join = (joinConfig = {}) => ({signalR, apiClient}) => {
-    const joinId = getJoinId(joinConfig) 
-    return signalR()
-      .flatMap(subscriber => {
-        return subscriber.join(joinId).flatMap(messages => {
-          return Rx.Observable.of(messages.map(message => {
-            if (message.message && message.message.method === 'put') {
-              return {type: ENTITIES_UPDATE_PUT, payload: message.message.value}
-            }
-            if (message.message && message.message.method === 'post') {
-              return {type: ENTITIES_UPDATE_POST, payload: message.message.value}
-            }
-            if (message.message && message.message.method === 'delete') {
-              return {type: ENTITIES_UPDATE_DELETE, id: message.message.id}
-            }
-            return {}
-          }))
-        })
-      }
-    )
+  const join = (joinConfig = {}) => ({signalR, apiClient}) =>
+    Rx.Observable.of(1).switchMap(x=> 
+      signalR()
+        .switchMap(subscriber => 
+          Rx.Observable.of(1).switchMap(x=> 
+            subscriber.join(getJoinId(joinConfig)).switchMap(messages => 
+              Rx.Observable.of(messages.map(message => {
+                if (message.message && message.message.method === 'put') {
+                  return {type: ENTITIES_UPDATE_PUT, payload: message.message.value}
+                }
+                if (message.message && message.message.method === 'post') {
+                  return {type: ENTITIES_UPDATE_POST, payload: message.message.value}
+                }
+                if (message.message && message.message.method === 'delete') {
+                  return {type: ENTITIES_UPDATE_DELETE, id: message.message.id}
+                }
+                return {}
+              }))
+            )
+          ).retryWhen(errors=>errors.delay(signalRRetry))
+      )
+    ).retryWhen(errors=>errors.delay(signalRRetry))
 
-    // if the signalR join fails we do a reset...
-    .catch(error => Rx.Observable.of(Rx.Observable.of({type: ENTITIES_RESET})))
-  }
-
-  const joinSingle = (id) => ({signalR, apiClient}) => {
-    const joinSingleId = getJoinSingleId(id)
-    return signalR()
-      .flatMap(subscriber => {
-        return subscriber.join(joinSingleId).flatMap(messages=>{
-          return Rx.Observable.of(messages.map(message=>{
-            if(message.message && message.message.method==='put'){
-              return {type: ENTITY_UPDATE_PUT, payload: message.message.value}
-            }
-            if(message.message && message.message.method==='delete'){
-              return {type: ENTITY_UPDATE_DELETE, id: message.message.id}
-            }
-            return {}
-          }))
-        })
-      }
-    )
-    // if the signalR join fails we do a reset...
-    .catch(error => Rx.Observable.of(Rx.Observable.of({type: ENTITIES_RESET})))
-  }
+  const joinSingle = (id) => ({signalR, apiClient}) => 
+    Rx.Observable.of(1).switchMap(x=>
+      signalR()
+        .flatMap(subscriber => 
+          Rx.Observable.of(1).flatMap(x=>
+            subscriber.join(getJoinSingleId(id)).flatMap(messages=>
+              Rx.Observable.of(messages.map(message=>{
+                if(message.message && message.message.method==='put'){
+                  return {type: ENTITY_UPDATE_PUT, payload: message.message.value}
+                }
+                if(message.message && message.message.method==='delete'){
+                  return {type: ENTITY_UPDATE_DELETE, id: message.message.id}
+                }
+                return {}
+              }))
+            )
+          ).retryWhen(errors=>errors.delay(signalRRetry))
+      )  
+    ).retryWhen(errors=>errors.delay(signalRRetry))
 
 
   // ------------------------------------
@@ -123,73 +121,72 @@ const getModule = ({
       const _loadConfig={...loadConfig, isDeleted: loadConfig.isDeleted && loadConfig.isDeleted!='false'}
       const loadDefaults = getLoadDefaults(_loadConfig)
       return (actions, {getState}) => {
-        return join(_loadConfig)({signalR, apiClient})
-          .flatMap(changes => {
-            const observedMessages = replayer(changes)
-            const path = getLoadPath(loadDefaults)
-            return Rx.Observable.fromPromise(apiClient.get(path))
-              .map(result => ({type: ENTITIES_LOAD_SUCCESS, payload: result}))
-              .concat(observedMessages)
-              .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_FAIL, payload: error}))
-          })
-          .startWith({type: ENTITIES_LOAD, payload: loadDefaults})
-          .takeUntil(
-            Rx.Observable
-              .empty()
-              .delay(0)
-              .concat(
-                actions.ofType(ENTITIES_RESET)
-              )
-          )
+        if(getLoadHasChanged({loadDefaults, getState})) {
+          return join(_loadConfig)({signalR, apiClient})
+            .switchMap(changes => {
+              const observedMessages = replayer(changes)
+              const path = getLoadPath(loadDefaults)
+              return Rx.Observable.fromPromise(apiClient.get(path))
+                .map(result => ({type: ENTITIES_LOAD_SUCCESS, payload: result}))
+                .concat(observedMessages)
+                .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_FAIL, payload: error}))
+            })
+            .startWith({type: ENTITIES_LOAD, payload: loadDefaults})
+            .takeUntil(
+              Rx.Observable
+                .empty()
+                .delay(0)
+                .concat(
+                  actions.ofType(ENTITIES_LOAD)
+                )
+            )
+        } else {
+          return Rx.Observable.empty()
+        }
       }
     }
 
   const loadErrorCancel = () => ({ type: ENTITIES_LOAD_FAIL_CANCEL})
   
   const loadMore = (loadConfig) => 
-    ({apiClient}) => {
-      const loadDefaults = getLoadDefaults(loadConfig)
-      const path = getLoadPath(loadDefaults)
-      
-      return (actions, {getState}) => {
-        return Rx.Observable.fromPromise(apiClient.get(path))
-            .map(result => ({type: ENTITIES_LOAD_MORE_SUCCESS, payload: result}))
-            .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_MORE_FAIL, payload: error}))
-            .startWith({type: ENTITIES_LOAD_MORE})            
+    ({apiClient}) =>   
+      (actions, {getState}) => 
+        Rx.Observable.fromPromise(apiClient.get(getLoadPath(getLoadDefaults(loadConfig))))
+          .map(result => ({type: ENTITIES_LOAD_MORE_SUCCESS, payload: result}))
+          .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_MORE_FAIL, payload: error}))
+          .startWith({type: ENTITIES_LOAD_MORE})            
+    
+
+  const loadSingle = (id, then) => ({signalR, apiClient}) => 
+    (actions, {getState, dispatch}) => {
+      if(getLoadSingleHasChanged({id, getState})) {
+        return joinSingle(id)({signalR, apiClient})
+          .flatMap(changes => 
+            Rx.Observable.fromPromise(apiClient.get(getSinglePath(id)))
+              .do(result => {
+                then && then(dispatch)(result)
+              })
+              .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result}))
+              .concat(replayer(changes))
+              .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
+          )
+          .startWith({type: ENTITY_LOAD, payload: id})
+          // miss a beat to allow for route changes...
+          .takeUntil(
+            Rx.Observable
+              .empty()
+              .delay(0)
+              .concat(
+                actions.ofType(ENTITY_LOAD)
+              )
+          )
+      } else {
+        return Rx.Observable.empty()
       }
     }
-
-  const loadSingle = (id, then) => ({signalR, apiClient}) => {
-    const singlePath = getSinglePath(id)
-    return (actions, {getState, dispatch}) => {
-      return joinSingle(id)({signalR, apiClient})
-        .flatMap(changes => {
-          const observedMessages = replayer(changes)
-          return Rx.Observable.fromPromise(apiClient.get(singlePath))
-            .do(result => {
-              then && then(dispatch)(result)
-            })
-            .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result}))
-            .concat(observedMessages)
-            .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
-        })
-        .startWith({type: ENTITY_LOAD})
-        // miss a beat to allow for route changes...
-        .takeUntil(
-          Rx.Observable
-            .empty()
-            .delay(0)
-            .concat(
-              actions.ofType(ENTITY_RESET)
-            )
-        )
-    }
-  }
   const singleLoadErrorCancel = () => ({ type: ENTITY_LOAD_FAIL_CANCEL})
 
   const add = (parentId) => ({ type: ENTITIES_ADD, parentId: parentId})
-  const reset = () => ({type: ENTITIES_RESET})
-  const resetSingle = () => ({type: ENTITY_RESET})
   function editStart(id) {
     return { type: ENTITIES_EDIT_START, id }
   }
@@ -262,12 +259,9 @@ const getModule = ({
   // Action Handlers
   // ------------------------------------
   const ACTION_HANDLERS = {
-    [ENTITIES_RESET]: (state, action) => ({
-      ...state
-      //data: null
-    }),
     [ENTITIES_LOAD]: (state, action) => ({
       ...state, 
+      loadInitial: null,
       error: null, 
       loading: true, 
       loadOrder: action.payload.order || 'Name',  
@@ -305,10 +299,11 @@ const getModule = ({
       loadingMore: false
     }),
 
-    [ENTITY_LOAD]: state => ({
-      ...state, 
+    [ENTITY_LOAD]: (state, action) => ({
+      ...state,
       singleError: null, 
-      singleLoading: true
+      singleLoading: true,
+      singleLoad: action.payload
     }),
     [ENTITY_LOAD_SUCCESS]: (state, action) => ({
       ...state,  
@@ -417,9 +412,10 @@ const getModule = ({
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
       
-      const deleted = state.loadDeleted 
-      const totalCountChange = !deleted ? 1 : 0 
+      
       const found = state.data.Values.find(state => state.Id === action.payload.Id)
+      const deleted = state.loadDeleted 
+      const totalCountChange = !deleted && !found ? 1 : 0 
       if (found) {
         const replace = {...action.payload}
         state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)
@@ -528,7 +524,7 @@ const getModule = ({
   // ------------------------------------
   // Reducer
   // ------------------------------------
-  const initialState = {loadOrder: 'Name', loadDeleted: false}
+  const initialState = {loadOrder: 'Name', loadDeleted: false, loadInitial: true}
   function reducer (state = initialState, action) {
     const handler = ACTION_HANDLERS[action.type]
     return handler ? handler(state, action) : state
@@ -556,10 +552,7 @@ const getModule = ({
       ENTITY_LOAD_SUCCESS,
       ENTITY_LOAD_FAIL,
       ENTITY_LOAD_FAIL_CANCEL,
-      ENTITY_RESET,
-
-
-      ENTITIES_RESET,
+      
       ENTITIES_INIT,
 
       ENTITIES_EDIT_START,
@@ -584,8 +577,6 @@ const getModule = ({
       loadSingle,
       singleLoadErrorCancel,
       add,
-      reset,
-      resetSingle,
       editStart,
       editStop,
       save,

@@ -13,16 +13,20 @@ describe('(Redux Module) Nodes', () => {
     getJoinSingleId,
     getLoadDefaults,
     getLoadPath,
+    getLoadHasChanged,
+    getLoadSingleHasChanged,
     getSinglePath,
     getPostPath,
     getPutPath,
     getDeletePath,
     postConvert
-  beforeEach(()=>{
+  beforeEach(()=>{ 
     getJoinId = sinon.stub()
     getJoinSingleId = sinon.stub()
     getLoadDefaults = sinon.stub()
     getLoadPath = sinon.stub()
+    getLoadHasChanged = sinon.stub()
+    getLoadSingleHasChanged= sinon.stub()
     getSinglePath = sinon.stub()
     getPostPath = sinon.stub()
     getPutPath = sinon.stub()
@@ -35,11 +39,14 @@ describe('(Redux Module) Nodes', () => {
       getJoinSingleId,
       getLoadDefaults,
       getLoadPath,
+      getLoadHasChanged,
+      getLoadSingleHasChanged,
       getSinglePath,
       getPostPath,
       getPutPath,
       getDeletePath,
-      postConvert
+      postConvert,
+      signalRRetry: 5
     })
     testModule = entityModule('TESTMODULE')
     
@@ -68,9 +75,7 @@ describe('(Redux Module) Nodes', () => {
         ENTITY_LOAD_SUCCESS,
         ENTITY_LOAD_FAIL,
         ENTITY_LOAD_FAIL_CANCEL,
-        ENTITY_RESET,
-
-        ENTITIES_RESET,
+        
         ENTITIES_INIT,
 
         ENTITIES_EDIT_START,
@@ -89,7 +94,7 @@ describe('(Redux Module) Nodes', () => {
       }
     } = testModule
 
-    expect(ENTITIES_UPDATE_PUT).to.equal('react-dealerweb/ENTITIES_UPDATE_PUT:TESTMODULE')
+    expect(ENTITIES_UPDATE_PUT.toString()).to.equal('react-dealerweb/ENTITIES_UPDATE_PUT:TESTMODULE')
     expect(ENTITIES_UPDATE_POST).to.equal('react-dealerweb/ENTITIES_UPDATE_POST:TESTMODULE')
     expect(ENTITIES_UPDATE_DELETE).to.equal('react-dealerweb/ENTITIES_UPDATE_DELETE:TESTMODULE')
 
@@ -97,8 +102,7 @@ describe('(Redux Module) Nodes', () => {
     expect(ENTITIES_LOAD_SUCCESS).to.equal('react-dealerweb/ENTITIES_LOAD_SUCCESS:TESTMODULE')
     expect(ENTITIES_LOAD_FAIL).to.equal('react-dealerweb/ENTITIES_LOAD_FAIL:TESTMODULE')
     expect(ENTITIES_LOAD_FAIL_CANCEL).to.equal('react-dealerweb/ENTITIES_LOAD_FAIL_CANCEL:TESTMODULE')
-    expect(ENTITIES_RESET).to.equal('react-dealerweb/ENTITIES_RESET:TESTMODULE')
-
+    
     expect(ENTITIES_LOAD_MORE).to.equal('react-dealerweb/ENTITIES_LOAD_MORE:TESTMODULE')
     expect(ENTITIES_LOAD_MORE_SUCCESS).to.equal('react-dealerweb/ENTITIES_LOAD_MORE_SUCCESS:TESTMODULE')
     expect(ENTITIES_LOAD_MORE_FAIL).to.equal('react-dealerweb/ENTITIES_LOAD_MORE_FAIL:TESTMODULE')
@@ -110,7 +114,6 @@ describe('(Redux Module) Nodes', () => {
     expect(ENTITY_LOAD_SUCCESS).to.equal('react-dealerweb/ENTITY_LOAD_SUCCESS:TESTMODULE')
     expect(ENTITY_LOAD_FAIL).to.equal('react-dealerweb/ENTITY_LOAD_FAIL:TESTMODULE')
     expect(ENTITY_LOAD_FAIL_CANCEL).to.equal('react-dealerweb/ENTITY_LOAD_FAIL_CANCEL:TESTMODULE')
-    expect(ENTITY_RESET).to.equal('react-dealerweb/ENTITY_RESET:TESTMODULE')
     expect(ENTITIES_INIT).to.equal('react-dealerweb/ENTITIES_INIT:TESTMODULE')
 
     expect(ENTITIES_EDIT_START).to.equal('react-dealerweb/ENTITIES_EDIT_START:TESTMODULE')
@@ -138,7 +141,7 @@ describe('(Redux Module) Nodes', () => {
     })
 
     it('Should initialize with an initial state.', () => {
-      expect(reducer(undefined, {})).to.eql({loadOrder: 'Name', loadDeleted: false})
+      expect(reducer(undefined, {})).to.eql({loadOrder: 'Name', loadDeleted: false, loadInitial: true})
     })
 
     it('Should return the previous state if an action was not matched.', () => {
@@ -156,22 +159,6 @@ describe('(Redux Module) Nodes', () => {
       reducer = testModule.reducer
     })
     
-    describe('type: ENTITIES_RESET', () => {
-      let reset, ENTITIES_RESET
-    
-      beforeEach(() => {
-        ENTITIES_RESET = testModule.constants.ENTITIES_RESET
-        reset = testModule.actions.reset  
-      })
-        
-      it('reset returns RESET type', () => {
-        expect(reset()).to.eql({type: ENTITIES_RESET})
-      })
-      it('Should be reduced with type ENTITIES_RESET.', () => {
-        const res = reducer({giles: 'test'}, {type: ENTITIES_RESET})
-        expect(res).to.eql({giles: 'test'})
-      })
-    }) 
     describe('type: ENTITIES_EDIT_START', () => {
       
       let editStart, ENTITIES_EDIT_START
@@ -305,7 +292,8 @@ describe('(Redux Module) Nodes', () => {
     
       it('Should be reduced with type ENTITIES_LOAD. deleted false', () => {
         const res = reducer({
-          giles: 'test'
+          giles: 'test',
+          loadInitial: true
         }, 
         {
           type: ENTITIES_LOAD, 
@@ -316,12 +304,14 @@ describe('(Redux Module) Nodes', () => {
           error: null, 
           loading: true, 
           loadDeleted: false, 
-          loadOrder: 'Name'
+          loadOrder: 'Name',
+          loadInitial: null
         })
       })
        it('Should be reduced with type ENTITIES_LOAD. deleted true', () => {
         const res = reducer({
-          giles: 'test'
+          giles: 'test',
+          loadInitial: true
         }, 
         {
           type: ENTITIES_LOAD, 
@@ -334,12 +324,14 @@ describe('(Redux Module) Nodes', () => {
           error: null, 
           loading: true, 
           loadDeleted: true, 
-          loadOrder: 'Name'
+          loadOrder: 'Name',
+          loadInitial: null
         })
       })
       it('Should be reduced with type ENTITIES_LOAD. order', () => {
         const res = reducer({
-          giles: 'test'
+          giles: 'test',
+          loadInitial: true
         }, {
           type: ENTITIES_LOAD, 
           payload: {
@@ -351,7 +343,8 @@ describe('(Redux Module) Nodes', () => {
           error: null, 
           loading: true, 
           loadDeleted: false, 
-          loadOrder: 'orderMe'
+          loadOrder: 'orderMe',
+          loadInitial: null
         })
       })
     })
@@ -509,12 +502,14 @@ describe('(Redux Module) Nodes', () => {
         const res = reducer({
           giles: 'test'
         }, {
-          type: ENTITY_LOAD
+          type: ENTITY_LOAD,
+          payload: 'testId'
         })
         expect(res).to.eql({
           giles: 'test', 
           singleError: null, 
-          singleLoading: true
+          singleLoading: true,
+          singleLoad: 'testId'
         })
       })
     })
@@ -1415,174 +1410,218 @@ describe('(Redux Module) Nodes', () => {
             })
           }
         })
-        
-        it('join signalR and call api', function *(){
-          getLoadDefaults.returns({ default: 'testGetDefaults'})
-          getJoinId.returns('test join Id')
-          const iter = load({giles: 'giles'})({signalR, apiClient})(actions, {
-            dispatch: _dispatchSpy, 
-            getState: _getStateSpy
-          }).toAsyncIterator()
+        describe('getLoadHasChanged.returns(true)', ()=>{
+          beforeEach(()=>{
+            getLoadHasChanged.returns(true)
+          })
+          it('join signalR and call api', function *(){
+            getLoadDefaults.returns({ default: 'testGetDefaults'})
+            getJoinId.returns('test join Id')
+            
+            const iter = load({giles: 'giles'})({signalR, apiClient})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            
+            expect(getLoadDefaults.getCall(0).args[0]).to.eql({giles: 'giles', isDeleted: undefined})
+            
+            getLoadPath.returns('testLoadPath')
+            expect(yield iter.nextValue()).to.eql({
+              type: ENTITIES_LOAD,
+              payload: {
+                default: 'testGetDefaults'
+              }
+            }) 
+            
+            expect(yield iter.nextValue())
+              .to.eql({
+                type: ENTITIES_LOAD_SUCCESS,
+                'payload': 'giles'
+              })
+            
+            expect(apiClient.get.getCall(0).args[0]).to.equal('testLoadPath')
+            expect(getJoinId.getCall(0).args[0]).to.eql({giles: 'giles', isDeleted: undefined})    
+            expect(joinSpy.getCall(0).args[0]).to.equal('test join Id')
+              
+              
+            iter.unsubscribe()
+          })
           
-          expect(getLoadDefaults.getCall(0).args[0]).to.eql({giles: 'giles', isDeleted: undefined})
-          
-          getLoadPath.returns('testLoadPath')
-          expect(yield iter.nextValue()).to.eql({
-            type: ENTITIES_LOAD,
-            payload: {
-              default: 'testGetDefaults'
-            }
-          }) 
-          
-          expect(yield iter.nextValue())
-            .to.eql({
-              type: ENTITIES_LOAD_SUCCESS,
-              'payload': 'giles'
+          it('Should return an observable that operates with put post and delete events.', function *() {
+            
+            const iter = load({})({signalR, apiClient})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            
+            yield iter.nextValue()
+            yield iter.nextValue()
+            
+            joinMessages.next({
+              message: {
+                method: 'put', 
+                value: 'putValue'
+              }
             })
-          
-          expect(apiClient.get.getCall(0).args[0]).to.equal('testLoadPath')
-          expect(getJoinId.getCall(0).args[0]).to.eql({giles: 'giles', isDeleted: undefined})    
-          expect(joinSpy.getCall(0).args[0]).to.equal('test join Id')
+            joinMessages.next({
+              message: {
+                method: 'post', 
+                value: 'postValue'
+              }
+            })
+            joinMessages.next({
+              message: {
+                method: 'delete', 
+                id: 'deleteValue'
+              }
+            })
             
-             
-          iter.unsubscribe()
-        })
-        
-        it('Should return an observable that operates with put post and delete events.', function *() {
-            
-          const iter = load({})({signalR, apiClient})(actions, {
-            dispatch: _dispatchSpy, 
-            getState: _getStateSpy
-          }).toAsyncIterator()
-          
-          yield iter.nextValue()
-          yield iter.nextValue()
-          
-          joinMessages.next({
-            message: {
-              method: 'put', 
-              value: 'putValue'
-            }
-          })
-          joinMessages.next({
-            message: {
-              method: 'post', 
-              value: 'postValue'
-            }
-          })
-          joinMessages.next({
-            message: {
-              method: 'delete', 
+            expect(yield iter.nextValue()).to.eql({
+              type: ENTITIES_UPDATE_PUT,
+              payload:'putValue'
+            })
+            expect(yield iter.nextValue()).to.eql({
+              type: ENTITIES_UPDATE_POST,
+              payload: 'postValue'
+            })
+            expect(yield iter.nextValue()).to.eql({
+              type: ENTITIES_UPDATE_DELETE,
               id: 'deleteValue'
+            })
+            
+            iter.unsubscribe()
+          })
+
+
+          it('Should play all notifications since api called.', function *() {
+            
+            const signalR = ()=> Rx.Observable.of({
+              join: ()=> Rx.Observable.of(Rx.Observable.of(
+                {message: {method: 'post', value: 'postValue'}},
+                {message: {method: 'put', value: 'putValue'}},
+                {message: {method: 'delete', id: 'deleteValue'}}
+              ))
+            })
+            
+            const apiClient = {
+              get: sinon.spy(()=> {
+                return new Promise((resolve)=>setTimeout(()=>resolve('giles'),100))
+              })
             }
-          })
-          
-          expect(yield iter.nextValue()).to.eql({
-            type: ENTITIES_UPDATE_PUT,
-            payload:'putValue'
-          })
-          expect(yield iter.nextValue()).to.eql({
-            type: ENTITIES_UPDATE_POST,
-            payload: 'postValue'
-          })
-          expect(yield iter.nextValue()).to.eql({
-            type: ENTITIES_UPDATE_DELETE,
-            id: 'deleteValue'
-          })
-          
-          iter.unsubscribe()
-        })
-
-
-        it('Should play all notifications since api called.', function *() {
-          
-          const signalR = ()=> Rx.Observable.of({
-            join: ()=> Rx.Observable.of(Rx.Observable.of(
-              {message: {method: 'post', value: 'postValue'}},
-              {message: {method: 'put', value: 'putValue'}},
-              {message: {method: 'delete', id: 'deleteValue'}}
-            ))
-          })
-          
-          const apiClient = {
-            get: sinon.spy(()=> {
-              return new Promise((resolve)=>setTimeout(()=>resolve('giles'),100))
-            })
-          }
-          const iter = load({})({signalR, apiClient})(actions, {
-            dispatch: _dispatchSpy, 
-            getState: _getStateSpy
-          }).toAsyncIterator()
-          
-          yield iter.nextValue()
-          yield iter.nextValue()
-          
-          //yield iter.nextValue()
-          const v1 = yield iter.nextValue()
-          const v2 = yield iter.nextValue()
-          const v3 = yield iter.nextValue()
-
-          expect(v1).to.eql({
-            type: ENTITIES_UPDATE_POST,
-            payload: 'postValue'
-          })
-          
-          expect(v2).to.eql({
-            type: ENTITIES_UPDATE_PUT,
-            payload: 'putValue'
-          })
-          expect(v3).to.eql({
-            type: ENTITIES_UPDATE_DELETE,
-            id: 'deleteValue'
-          })
-          
-          
-          iter.unsubscribe()
-        })
-        
-        it('Should return an observable that operates on signalR fail.', function *() {
-          const signalR =  ()=> Rx.Observable.throw()
-          
-          const apiClient = {
-            get: sinon.spy(()=> {
-              return Promise.resolve('giles')
-            })
-          }
-          const iter = load({})({signalR, apiClient})(actions, {
-            dispatch: _dispatchSpy, 
-            getState: _getStateSpy
-          }).toAsyncIterator()
-          
-          
-          yield iter.nextValue()
-          yield iter.nextValue()
-          expect(yield iter.nextValue()).to.eql({
-            type: testModule.constants.ENTITIES_RESET
-          })
-          iter.unsubscribe()
-        })
-        it('Should return an observable that operates on fail.', function *() {
-          const joinMessages = new Rx.Subject()
-          const signalR = ()=>Rx.Observable.of({
-            join: ()=> Rx.Observable.of(joinMessages),
+            const iter = load({})({signalR, apiClient})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
             
-          })
+            yield iter.nextValue()
+            yield iter.nextValue()
             
-          const apiClient = {
-            get: sinon.spy(()=> Promise.reject('giles'))
-          }
-          const iter = load({})({signalR, apiClient})(actions, {
-            dispatch: _dispatchSpy, 
-            getState: _getStateSpy
-          }).toAsyncIterator()
+            //yield iter.nextValue()
+            const v1 = yield iter.nextValue()
+            const v2 = yield iter.nextValue()
+            const v3 = yield iter.nextValue()
+
+            expect(v1).to.eql({
+              type: ENTITIES_UPDATE_POST,
+              payload: 'postValue'
+            })
+            
+            expect(v2).to.eql({
+              type: ENTITIES_UPDATE_PUT,
+              payload: 'putValue'
+            })
+            expect(v3).to.eql({
+              type: ENTITIES_UPDATE_DELETE,
+              id: 'deleteValue'
+            })
+            
+            
+            iter.unsubscribe()
+          })
           
-          yield iter.nextValue()
-          
-          expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD_FAIL,'payload': 'giles'})
-          
-          yield iter.shouldComplete()
-          
-          iter.unsubscribe()
+          it('Should pass an async test.', function *(done) {
+
+            setTimeout(done, 100)
+          })
+
+          it('Should return an observable that retries on signalR fail.', function *(done) {
+            const signalR =  sinon.spy(()=> Rx.Observable.throw())
+            const iter = load({})({signalR})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            
+            yield iter.nextValue()
+            
+            setTimeout(function(){
+              expect(signalR.callCount).to.equal(2)
+              iter.unsubscribe()
+              setTimeout(function() {
+                expect(signalR.callCount).to.equal(2)
+                done()
+              },10)
+            }, 7)
+            yield iter.nextValue()
+          })
+          it('Should return an observable that retries on signalR join fail.', function *(done) {
+            const join = sinon.spy(()=> Rx.Observable.throw())
+            const signalR = sinon.spy(()=>Rx.Observable.of({join}))
+            const iter = load({})({signalR})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            yield iter.nextValue()
+            setTimeout(function(){
+              expect(signalR.callCount).to.equal(1)
+              expect(join.callCount).to.equal(2)
+              iter.unsubscribe()
+              setTimeout(function() {
+                expect(signalR.callCount).to.equal(1)
+                expect(join.callCount).to.equal(2)
+                done()
+              },10)
+            }, 7)
+            yield iter.nextValue()
+          })
+          it('Should return an observable that operates on fail.', function *() {
+            const joinMessages = new Rx.Subject()
+            const signalR = ()=>Rx.Observable.of({
+              join: ()=> Rx.Observable.of(joinMessages),
+              
+            })
+              
+            const apiClient = {
+              get: sinon.spy(()=> Promise.reject('giles'))
+            }
+            const iter = load({})({signalR, apiClient})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            
+            yield iter.nextValue()
+            
+            expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD_FAIL,'payload': 'giles'})
+            
+            yield iter.shouldComplete()
+            
+            iter.unsubscribe()
+          })
+        })
+        describe('getLoadHasChanged.returns(true)', ()=>{
+          beforeEach(()=>{
+            getLoadHasChanged.returns(false)
+          })
+          it('completes', function *(){
+            getLoadDefaults.returns({ default: 'testGetDefaults'})
+            getJoinId.returns('test join Id')
+            
+            const iter = load({giles: 'giles'})({signalR, apiClient})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            expect(getLoadDefaults.getCall(0).args[0]).to.eql({giles: 'giles', isDeleted: undefined})            
+            yield iter.shouldComplete()
+          })
         })
       })
     })
@@ -1659,172 +1698,188 @@ describe('(Redux Module) Nodes', () => {
       it('Should return a function.', () => {
         expect(loadSingle()).to.be.a('function')
       })
+      describe('getLoadSingleHasChanged false', ()=>{
 
-      it('Should return an observable that operates.', function *() {
-        const joinMessages = new Rx.Subject()
-        
-        const signalR = ()=>Rx.Observable.of({
-          join: ()=> Rx.Observable.of(joinMessages),
+        beforeEach(() => {
+          getLoadSingleHasChanged.returns(false)
+        })
+
+        it('Should return an empty observable', function *() {
+          
+          const iter = loadSingle('id')({signalR: null, apiClient: null})(actions, {
+            dispatch: _dispatchSpy, 
+            getState: _getStateSpy
+          }).toAsyncIterator()
+
+          yield iter.shouldComplete()
+          
+          iter.unsubscribe()
           
         })
-        
-        const apiClient = {
-          get: sinon.spy(()=> {
-            return Promise.resolve('giles')
+      })
+      describe('getLoadSingleHasChanged true', ()=>{
+
+        beforeEach(() => {
+          getLoadSingleHasChanged.returns(true)
+        })
+
+        it('Should return an observable that operates.', function *() {
+          const joinMessages = new Rx.Subject()
+          
+          const signalR = ()=>Rx.Observable.of({
+            join: ()=> Rx.Observable.of(joinMessages),
+
           })
-        }
-
-        getJoinSingleId.returns('test me')
-        getSinglePath.returns('test me 2')
-
-        const iter = loadSingle('id')({signalR, apiClient})(actions, {
-          dispatch: _dispatchSpy, 
-          getState: _getStateSpy
-        }).toAsyncIterator()
-        
-        
-        expect(yield iter.nextValue()).to.eql({
-          'type': testModule.constants.ENTITY_LOAD
-        })
-        
-        
-        expect(yield iter.nextValue()).to.eql({
-          'type': testModule.constants.ENTITY_LOAD_SUCCESS,
-          'payload': 'giles'
-        })
-        
-        expect(apiClient.get.getCall(0).args[0]).to.equal('test me 2')
-        expect(getSinglePath.getCall(0).args[0]).to.equal('id')
-        joinMessages.next({
-          message: {
-            method: 'put',
-            value: 'putValue'
-          }
-        })
-        joinMessages.next({
-          message: {
-            method: 'delete', 
-            id: 'deleteValue'
-          }
-        })
-        
-        expect(yield iter.nextValue()).to.eql({
-          'type': testModule.constants.ENTITY_UPDATE_PUT,
-          'payload':'putValue'
-        })
-        
-        expect(yield iter.nextValue()).to.eql({
-          'type': testModule.constants.ENTITY_UPDATE_DELETE,
-          'id':'deleteValue'
-        })
-        
-        iter.unsubscribe()
-      })
-      it('Should join correct SignalR group', function *() {
-        const joinMessages = new Rx.Subject()
-        const joinResult = {
-          join: sinon.spy(()=> Rx.Observable.of(joinMessages)),
           
-        }
-        const signalR = ()=>Rx.Observable.of(joinResult)
-        getJoinSingleId.returns('test me')
-        const apiClient = {
-          get: ()=> {
-            return Promise.resolve('giles')
+          const apiClient = {
+            get: sinon.spy(()=> {
+              return Promise.resolve('giles')
+            })
           }
-        }
-        const iter = loadSingle('testid')({signalR, apiClient})(actions, {
-          dispatch: _dispatchSpy, 
-          getState: _getStateSpy
-        }).toAsyncIterator()
-        yield iter.nextValue()
-        yield iter.nextValue()
-        expect(getJoinSingleId.getCall(0).args[0]).to.equal('testid')
-        expect(joinResult.join.getCall(0).args[0]).to.equal('test me')
 
-        
-        iter.unsubscribe()
-      })
-      it('Should play all notifications since api called.', function *() {
-        return
-        const signalR = ()=>Rx.Observable.of({
-          join: ()=> Rx.Observable.of(Rx.Observable.of(
-            {message: {method: 'post', value: 'postValue'}},
-            {message: {method: 'put', value: 'putValue'}},
-            {message: {method: 'delete', id: 'deleteValue'}}
-          )),
+          getJoinSingleId.returns('test me')
+          getSinglePath.returns('test me 2')
+
+          const iter = loadSingle('id')({signalR, apiClient})(actions, {
+            dispatch: _dispatchSpy, 
+            getState: _getStateSpy
+          }).toAsyncIterator()
           
-        })
-        
-        const apiClient = {
-          get: sinon.spy(()=> {
-            return new Promise((resolve)=>setTimeout(()=>resolve('giles'),100))
+          
+          expect(yield iter.nextValue()).to.eql({
+            type: testModule.constants.ENTITY_LOAD,
+            payload:'id'
           })
-        }
-        const iter = load({})({signalR, apiClient})(actions, {
-          dispatch: _dispatchSpy, 
-          getState: _getStateSpy
-        }).toAsyncIterator()
-        
-        
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD, payload: {isDeleted: false}})
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD_SUCCESS,'payload': 'giles'})
-        
-        expect(apiClient.get.getCall(0).args[0]).to.equal('nodes?order=Name&isDeleted=false')
-        
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_UPDATE_POST,'payload':'postValue'})
-        
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_UPDATE_PUT,'payload':'putValue'})
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_UPDATE_DELETE,'id':'deleteValue'})
-        
-        
-        iter.unsubscribe()
-      })
-      
-      it('Should return an observable that operates on signalR fail.', function *() {
-        return
-        const signalR = Rx.Observable.of()
-        
-        const apiClient = {
-          get: sinon.spy(()=> {
-            return Promise.resolve('giles')
+          
+          
+          expect(yield iter.nextValue()).to.eql({
+            type: testModule.constants.ENTITY_LOAD_SUCCESS,
+            payload: 'giles'
           })
-        }
-        const iter = load({})({signalR, apiClient})(actions, {
-          dispatch: _dispatchSpy, 
-          getState: _getStateSpy
-        }).toAsyncIterator()
-        
-        
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD, payload: {isDeleted: false}})
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD_SUCCESS,'payload': 'giles'})
-        expect(apiClient.get.getCall(0).args[0]).to.equal('nodes?order=Name&isDeleted=false')
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_RESET})
-        iter.unsubscribe()
-      })
-      it('Should return an observable that operates on fail.', function *() {
-        return
-        const joinMessages = new Rx.Subject()
-        const signalR = ()=>Rx.Observable.of({
-          join: ()=> Rx.Observable.of(joinMessages),
           
+          expect(apiClient.get.getCall(0).args[0]).to.equal('test me 2')
+          expect(getSinglePath.getCall(0).args[0]).to.equal('id')
+          joinMessages.next({
+            message: {
+              method: 'put',
+              value: 'putValue'
+            }
+          })
+          joinMessages.next({
+            message: {
+              method: 'delete', 
+              id: 'deleteValue'
+            }
+          })
+          
+          expect(yield iter.nextValue()).to.eql({
+            'type': testModule.constants.ENTITY_UPDATE_PUT,
+            'payload':'putValue'
+          })
+          
+          expect(yield iter.nextValue()).to.eql({
+            'type': testModule.constants.ENTITY_UPDATE_DELETE,
+            'id':'deleteValue'
+          })
+          
+          iter.unsubscribe()
         })
+        it('Should return an observable that retries on signalR fail.', function *(done) {
+            const signalR =  sinon.spy(()=> {
+              return Rx.Observable.throw()
+            })
+            const iter = loadSingle('testId')({signalR})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            
+            yield iter.nextValue()
+            
+            setTimeout(function(){
+              expect(signalR.callCount).to.equal(2)
+              iter.unsubscribe()
+              setTimeout(function() {
+                expect(signalR.callCount).to.equal(2)
+                done()
+              },10)
+            }, 7)
+            yield iter.nextValue()
+          })
+        it('Should return an observable that retries on signalR join fail.', function *(done) {
+            const join = sinon.spy(()=> Rx.Observable.throw())
+            const signalR = sinon.spy(()=>Rx.Observable.of({join}))
+            const iter = loadSingle('testId')({signalR})(actions, {
+              dispatch: _dispatchSpy, 
+              getState: _getStateSpy
+            }).toAsyncIterator()
+            yield iter.nextValue()
+            setTimeout(function(){
+              expect(signalR.callCount).to.equal(1)
+              expect(join.callCount).to.equal(2)
+              iter.unsubscribe()
+              setTimeout(function() {
+                expect(signalR.callCount).to.equal(1)
+                expect(join.callCount).to.equal(2)
+                done()
+              },10)
+            }, 7)
+            yield iter.nextValue()
+          })
+
+        it('Should join correct SignalR group', function *() {
+          const joinMessages = new Rx.Subject()
+          const joinResult = {
+            join: sinon.spy(()=> Rx.Observable.of(joinMessages)),
+            
+          }
+          const signalR = ()=>Rx.Observable.of(joinResult)
+          getJoinSingleId.returns('test me')
+          const apiClient = {
+            get: ()=> {
+              return Promise.resolve('giles')
+            }
+          }
+          const iter = loadSingle('testid')({signalR, apiClient})(actions, {
+            dispatch: _dispatchSpy, 
+            getState: _getStateSpy
+          }).toAsyncIterator()
+          yield iter.nextValue()
+          yield iter.nextValue()
+          expect(getJoinSingleId.getCall(0).args[0]).to.equal('testid')
+          expect(joinResult.join.getCall(0).args[0]).to.equal('test me')
+
           
-        const apiClient = {
-          get: sinon.spy(()=> Promise.reject('giles'))
-        }
-        const iter = load({})({signalR, apiClient})(actions, {
-          dispatch: _dispatchSpy, 
-          getState: _getStateSpy
-        }).toAsyncIterator()
-        
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD, payload: {isDeleted: false}})
-        
-        expect(yield iter.nextValue()).to.eql({'type': ENTITIES_LOAD_FAIL,'payload': 'giles'})
-        
-        yield iter.shouldComplete()
-         
-        iter.unsubscribe()
+          iter.unsubscribe()
+        })
+        it('Should play all notifications since api called.', function *() {
+          const signalR = ()=>Rx.Observable.of({
+            join: ()=> Rx.Observable.of(Rx.Observable.of(
+              {message: {method: 'put', value: 'putValue'}},
+              {message: {method: 'delete', id: 'deleteValue'}}
+            )),
+            
+          })
+          
+          const apiClient = {
+            get: sinon.spy(()=> {
+              return new Promise((resolve)=>setTimeout(()=>resolve('giles'),100))
+            })
+          }
+          getSinglePath.returns('testPath')
+          const iter = loadSingle('testId')({signalR, apiClient})(actions, {
+            dispatch: _dispatchSpy, 
+            getState: _getStateSpy
+          }).toAsyncIterator()
+          
+          yield iter.nextValue()
+          yield iter.nextValue()
+          
+          expect(yield iter.nextValue()).to.eql({'type': testModule.constants.ENTITY_UPDATE_PUT,'payload':'putValue'})
+          expect(yield iter.nextValue()).to.eql({'type': testModule.constants.ENTITY_UPDATE_DELETE,'id':'deleteValue'})
+          
+          
+          iter.unsubscribe()
+        })
       })
     })
 
