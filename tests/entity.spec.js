@@ -576,7 +576,8 @@ describe('(Redux Module) Nodes', () => {
         })
         expect(res).to.eql({
           giles: 'test', 
-          singleError: null
+          singleError: null,
+          singleLoad: null
         })
       })
     })

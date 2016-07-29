@@ -317,7 +317,8 @@ const getModule = ({
     }),
     [ENTITY_LOAD_FAIL_CANCEL]: (state, action) => ({
       ...state, 
-      singleError: null
+      singleError: null,
+      singleLoad: null
     }),
     [ENTITIES_EDIT_START]: (state, action) => ({
       ...state, 
