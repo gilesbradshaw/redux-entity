@@ -157,15 +157,12 @@ const getModule = ({
           .startWith({type: ENTITIES_LOAD_MORE})            
     
 
-  const loadSingle = (id, then) => ({signalR, apiClient}) => 
+  const loadSingle = (id) => ({signalR, apiClient}) => 
     (actions, {getState, dispatch}) => {
       if(getLoadSingleHasChanged({id, getState})) {
         return joinSingle(id)({signalR, apiClient})
           .flatMap(changes => 
             Rx.Observable.fromPromise(apiClient.get(getSinglePath(id)))
-              .do(result => {
-                then && then(dispatch)(result)
-              })
               .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result}))
               .concat(replayer(changes))
               .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
