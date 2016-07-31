@@ -522,7 +522,8 @@ describe('(Redux Module) Nodes', () => {
           giles: 'test', 
           singleError: null, 
           singleLoading: true,
-          singleLoad: 'testId'
+          singleLoad: 'testId',
+          singleData: null
         })
       })
     })

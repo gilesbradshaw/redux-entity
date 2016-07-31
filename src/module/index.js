@@ -306,7 +306,8 @@ const getModule = ({
       ...state,
       singleError: null, 
       singleLoading: true,
-      singleLoad: action.payload
+      singleLoad: action.payload,
+      singleData: null
     }),
     [ENTITY_LOAD_SUCCESS]: (state, action) => ({
       ...state,  
