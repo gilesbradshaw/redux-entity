@@ -260,12 +260,14 @@ const getModule = ({
   // ------------------------------------
   const ACTION_HANDLERS = {
     [ENTITIES_LOAD]: (state, action) => ({
-      ...state, 
+      ...state,
+      data: null,
       loadInitial: null,
       error: null, 
       loading: true, 
       loadOrder: action.payload.order || 'Name',  
-      loadDeleted: action.payload.isDeleted || false
+      loadDeleted: action.payload.isDeleted || false,
+      loadDefaults: action.payload
     }),
     [ENTITIES_LOAD_SUCCESS]: (state, action) => ({ 
       ...state,  
@@ -279,7 +281,8 @@ const getModule = ({
     }),
     [ENTITIES_LOAD_FAIL_CANCEL]: (state, action) => ({
       ...state, 
-      error: null
+      error: null,
+      loadDefaults:null
     }),
     [ENTITIES_LOAD_MORE]: (state, action) => ({
       ...state, 

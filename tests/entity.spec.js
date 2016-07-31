@@ -297,7 +297,7 @@ describe('(Redux Module) Nodes', () => {
         }, 
         {
           type: ENTITIES_LOAD, 
-          payload: {}
+          payload: 'loadDefaults'
         })
         expect(res).to.eql({
           giles: 'test', 
@@ -305,7 +305,9 @@ describe('(Redux Module) Nodes', () => {
           loading: true, 
           loadDeleted: false, 
           loadOrder: 'Name',
-          loadInitial: null
+          loadInitial: null,
+          data: null,
+          loadDefaults: 'loadDefaults'
         })
       })
        it('Should be reduced with type ENTITIES_LOAD. deleted true', () => {
@@ -319,13 +321,19 @@ describe('(Redux Module) Nodes', () => {
             isDeleted: true
           }
         })
+        console.log(JSON.stringify(res))
+        
         expect(res).to.eql({
           giles: 'test', 
           error: null, 
           loading: true, 
           loadDeleted: true, 
           loadOrder: 'Name',
-          loadInitial: null
+          loadInitial: null,
+          data: null,
+          loadDefaults: {
+            isDeleted: true
+          }
         })
       })
       it('Should be reduced with type ENTITIES_LOAD. order', () => {
@@ -344,7 +352,11 @@ describe('(Redux Module) Nodes', () => {
           loading: true, 
           loadDeleted: false, 
           loadOrder: 'orderMe',
-          loadInitial: null
+          loadInitial: null,
+          data: null,
+          loadDefaults: {
+            order: 'orderMe'
+          }
         })
       })
     })
@@ -388,7 +400,8 @@ describe('(Redux Module) Nodes', () => {
         })
         expect(res).to.eql({
           giles: 'test', 
-          error: null
+          error: null,
+          loadDefaults: null
         })
       })
     })
@@ -570,7 +583,8 @@ describe('(Redux Module) Nodes', () => {
       it('Should be reduced with type ENTITY_LOAD_FAIL_CANCEL.', () => {
         const res = reducer({
           giles: 'test',
-          singleError: 'error'
+          singleError: 'error',
+          singleLoad:'testId'
         }, {
           type: ENTITY_LOAD_FAIL_CANCEL
         })
