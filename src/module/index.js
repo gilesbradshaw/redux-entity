@@ -127,7 +127,8 @@ const getModule = ({
               const observedMessages = replayer(changes)
               const path = getLoadPath(loadDefaults)
               return apiClient.get(path)
-                .map(result => ({type: ENTITIES_LOAD_SUCCESS, payload: result}))
+                .filter(result=>result.result)
+                .map(result => ({type: ENTITIES_LOAD_SUCCESS, payload: result.result}))
                 .concat(observedMessages)
                 .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_FAIL, payload: error}))
             })
@@ -154,7 +155,8 @@ const getModule = ({
     return ({apiClient}) =>   
       (actions, {getState}) => 
         apiClient.get(getLoadPath(getLoadDefaults(loadConfig)))
-          .map(result => ({type: ENTITIES_LOAD_MORE_SUCCESS, payload: result}))
+          .filter(result=> result.result)
+          .map(result => ({type: ENTITIES_LOAD_MORE_SUCCESS, payload: result.result}))
           .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_MORE_FAIL, payload: error}))
           .startWith({type: ENTITIES_LOAD_MORE})            
     }
@@ -165,7 +167,8 @@ const getModule = ({
         return joinSingle(id)({signalR, apiClient})
           .flatMap(changes => 
             apiClient.get(getSinglePath(id))
-              .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result}))
+              .filter(result=> result.result)
+              .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result.result}))
               .concat(replayer(changes))
               .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
           )
@@ -206,7 +209,11 @@ const getModule = ({
         apiClient.put(putPath, {
             data: values
           }, files)
-        .flatMap(result=>Rx.Observable.of({type: ENTITIES_SAVE_SUCCESS, id: values.Id, keepEditing}))
+        .flatMap(result=>Rx.Observable.of(
+          result.result
+          ? {type: ENTITIES_SAVE_SUCCESS, id: values.Id, keepEditing}
+          : {}
+        ))
         .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))  
         .startWith({type: ENTITIES_SAVE, values})
     } else {
@@ -215,7 +222,11 @@ const getModule = ({
         apiClient.post(postPath , {
             data: postConvert(values)
           }, files)
-        .flatMap(result=>Rx.Observable.of( {type: ENTITIES_ADD_SUCCESS}))
+        .flatMap(result=>Rx.Observable.of(
+          result.result
+          ? {type: ENTITIES_ADD_SUCCESS}
+          : {}
+        ))
         .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))
         .startWith({type: ENTITIES_SAVE, values})
     }
@@ -224,7 +235,11 @@ const getModule = ({
     const deletePath = getDeletePath(id)
     return (actions, {getState}) =>
       apiClient.del(deletePath)
-      .flatMap(result => Rx.Observable.of({type: ENTITIES_DELETE_SUCCESS, id}))
+      .flatMap(result => Rx.Observable.of(
+        result.result
+        ? {type: ENTITIES_DELETE_SUCCESS, id}
+        : {}
+      ))
       .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id, error: error}))
       .startWith({type: ENTITIES_DELETE, id})
   }
