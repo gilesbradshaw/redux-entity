@@ -126,7 +126,7 @@ const getModule = ({
             .switchMap(changes => {
               const observedMessages = replayer(changes)
               const path = getLoadPath(loadDefaults)
-              return Rx.Observable.fromPromise(apiClient.get(path))
+              return apiClient.get(path)
                 .map(result => ({type: ENTITIES_LOAD_SUCCESS, payload: result}))
                 .concat(observedMessages)
                 .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_FAIL, payload: error}))
@@ -153,7 +153,7 @@ const getModule = ({
     console.log('lccc', loadConfig)
     return ({apiClient}) =>   
       (actions, {getState}) => 
-        Rx.Observable.fromPromise(apiClient.get(getLoadPath(getLoadDefaults(loadConfig))))
+        apiClient.get(getLoadPath(getLoadDefaults(loadConfig)))
           .map(result => ({type: ENTITIES_LOAD_MORE_SUCCESS, payload: result}))
           .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_MORE_FAIL, payload: error}))
           .startWith({type: ENTITIES_LOAD_MORE})            
@@ -164,7 +164,7 @@ const getModule = ({
       if(getLoadSingleHasChanged({id, getState})) {
         return joinSingle(id)({signalR, apiClient})
           .flatMap(changes => 
-            Rx.Observable.fromPromise(apiClient.get(getSinglePath(id)))
+            apiClient.get(getSinglePath(id))
               .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result}))
               .concat(replayer(changes))
               .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
@@ -202,21 +202,19 @@ const getModule = ({
   })=> ({apiClient}) => {
     if(!values.isNew) {
        const putPath = getPutPath(values)
-      return (actions, {getState}) => Rx.Observable.fromPromise(
-        //Promise.reject('nooooooooo')
+      return (actions, {getState}) =>
         apiClient.put(putPath, {
             data: values
           }, files)
-        ).flatMap(result=>Rx.Observable.of({type: ENTITIES_SAVE_SUCCESS, id: values.Id, keepEditing}))
+        .flatMap(result=>Rx.Observable.of({type: ENTITIES_SAVE_SUCCESS, id: values.Id, keepEditing}))
         .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))  
         .startWith({type: ENTITIES_SAVE, values})
     } else {
       const postPath = getPostPath(values)
-      return (actions, {getState}) => Rx.Observable.fromPromise(
+      return (actions, {getState}) =>
         apiClient.post(postPath , {
             data: postConvert(values)
           }, files)
-        )
         .flatMap(result=>Rx.Observable.of( {type: ENTITIES_ADD_SUCCESS}))
         .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))
         .startWith({type: ENTITIES_SAVE, values})
@@ -224,11 +222,11 @@ const getModule = ({
   }
   const remove = (id) => ({apiClient}) => {
     const deletePath = getDeletePath(id)
-    return (actions, {getState}) => Rx.Observable.fromPromise(
+    return (actions, {getState}) =>
       apiClient.del(deletePath)
-    ).flatMap(result => Rx.Observable.of({type: ENTITIES_DELETE_SUCCESS, id}))
-    .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id, error: error}))
-    .startWith({type: ENTITIES_DELETE, id})
+      .flatMap(result => Rx.Observable.of({type: ENTITIES_DELETE_SUCCESS, id}))
+      .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id, error: error}))
+      .startWith({type: ENTITIES_DELETE, id})
   }
 
   // orders and filters data according to state

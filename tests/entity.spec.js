@@ -1422,9 +1422,7 @@ describe('(Redux Module) Nodes', () => {
           signalR = ()=> Rx.Observable.of({join:joinSpy})
           
           apiClient = {
-            get: sinon.spy(()=> {
-              return Promise.resolve('giles')
-            })
+            get: sinon.spy(()=> Rx.Observable.of('giles'))
           }
         })
         describe('getLoadHasChanged.returns(true)', ()=>{
@@ -1521,9 +1519,7 @@ describe('(Redux Module) Nodes', () => {
             })
             
             const apiClient = {
-              get: sinon.spy(()=> {
-                return new Promise((resolve)=>setTimeout(()=>resolve('giles'),100))
-              })
+              get: sinon.spy(()=> Rx.Observable.of('giles').delay(100))
             }
             const iter = load({})({signalR, apiClient})(actions, {
               dispatch: _dispatchSpy, 
@@ -1608,7 +1604,7 @@ describe('(Redux Module) Nodes', () => {
             })
               
             const apiClient = {
-              get: sinon.spy(()=> Promise.reject('giles'))
+              get: sinon.spy(()=> Rx.Observable.throw('giles'))
             }
             const iter = load({})({signalR, apiClient})(actions, {
               dispatch: _dispatchSpy, 
@@ -1670,9 +1666,7 @@ describe('(Redux Module) Nodes', () => {
           ENTITIES_LOAD_MORE_FAIL = testModule.constants.ENTITIES_LOAD_MORE_FAIL
           
           apiClient = {
-            get: sinon.spy(()=> {
-              return Promise.resolve('giles')
-            })
+            get: sinon.spy(()=> Rx.Observable.of('giles'))
           }
         }) 
         
@@ -1749,9 +1743,7 @@ describe('(Redux Module) Nodes', () => {
           })
           
           const apiClient = {
-            get: sinon.spy(()=> {
-              return Promise.resolve('giles')
-            })
+            get: sinon.spy(()=> Rx.Observable.of('giles'))
           }
 
           getJoinSingleId.returns('test me')
@@ -1852,9 +1844,7 @@ describe('(Redux Module) Nodes', () => {
           const signalR = ()=>Rx.Observable.of(joinResult)
           getJoinSingleId.returns('test me')
           const apiClient = {
-            get: ()=> {
-              return Promise.resolve('giles')
-            }
+            get: ()=> Rx.Observable.of('giles')
           }
           const iter = loadSingle('testid')({signalR, apiClient})(actions, {
             dispatch: _dispatchSpy, 
@@ -1878,9 +1868,7 @@ describe('(Redux Module) Nodes', () => {
           })
           
           const apiClient = {
-            get: sinon.spy(()=> {
-              return new Promise((resolve)=>setTimeout(()=>resolve('giles'),100))
-            })
+            get: sinon.spy(()=> Rx.Observable.of('giles').delay(100))
           }
           getSinglePath.returns('testPath')
           const iter = loadSingle('testId')({signalR, apiClient})(actions, {
@@ -1917,7 +1905,7 @@ describe('(Redux Module) Nodes', () => {
       it('Should return an observable that operates when put.', function *() {
         
         const apiClient = {
-          put: sinon.spy(()=> Promise.resolve('editied data'))
+          put: sinon.spy(()=> Rx.Observable.of('editied data'))
         }
         getPutPath.returns('test put path')
         const iter = save({
@@ -1955,7 +1943,7 @@ describe('(Redux Module) Nodes', () => {
       it('Should return an observable that operates when put. keepEditing = true', function *() {
         
         const apiClient = {
-          put: sinon.spy(()=> Promise.resolve('editied data'))
+          put: sinon.spy(()=> Rx.Observable.of('editied data'))
         }
         getPutPath.returns('test put path')
         const iter = save({
@@ -1991,7 +1979,7 @@ describe('(Redux Module) Nodes', () => {
       })
       it('Should return an observable that operates when post.', function *() {
         const apiClient = {
-          post: sinon.spy(()=> Promise.resolve('posted data'))
+          post: sinon.spy(()=> Rx.Observable.of('posted data'))
         }
         postConvert.returns('post converted')
         getPostPath.returns('post path')
@@ -2124,7 +2112,7 @@ describe('(Redux Module) Nodes', () => {
       it('Should return an observable that operates.', function *() {
         
         const apiClient = {
-          del: sinon.spy(()=> Promise.resolve())
+          del: sinon.spy(()=> Rx.Observable.of('giles'))
         }
         getDeletePath.returns('test delete path')
         const iter = remove('testId')({apiClient})(undefined, {
