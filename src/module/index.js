@@ -23,11 +23,13 @@ const getModule = ({
   const ENTITIES_UPDATE_DELETE = 'react-dealerweb/ENTITIES_UPDATE_DELETE:' + name
 
   const ENTITIES_LOAD = 'react-dealerweb/ENTITIES_LOAD:' + name
+  const ENTITIES_LOAD_PROGRESS = 'react-dealerweb/ENTITIES_LOAD_PROGRESS:' + name
   const ENTITIES_LOAD_SUCCESS = 'react-dealerweb/ENTITIES_LOAD_SUCCESS:' + name
   const ENTITIES_LOAD_FAIL = 'react-dealerweb/ENTITIES_LOAD_FAIL:' + name
   const ENTITIES_LOAD_FAIL_CANCEL = 'react-dealerweb/ENTITIES_LOAD_FAIL_CANCEL:' + name
 
   const ENTITIES_LOAD_MORE = 'react-dealerweb/ENTITIES_LOAD_MORE:' + name
+  const ENTITIES_LOAD_MORE_PROGRESS = 'react-dealerweb/ENTITIES_LOAD_MORE_PROGRESS:' + name
   const ENTITIES_LOAD_MORE_SUCCESS = 'react-dealerweb/ENTITIES_LOAD_MORE_SUCCESS:' + name
   const ENTITIES_LOAD_MORE_FAIL = 'react-dealerweb/ENTITIES_LOAD_MORE_FAIL:' + name
 
@@ -35,6 +37,7 @@ const getModule = ({
   const ENTITY_UPDATE_DELETE = 'react-dealerweb/ENTITY_UPDATE_DELETE:' + name
 
   const ENTITY_LOAD = 'react-dealerweb/ENTITY_LOAD:' + name
+  const ENTITY_LOAD_PROGRESS = 'react-dealerweb/ENTITY_LOAD_PROGRESS:' + name
   const ENTITY_LOAD_SUCCESS = 'react-dealerweb/ENTITY_LOAD_SUCCESS:' + name
   const ENTITY_LOAD_FAIL = 'react-dealerweb/ENTITY_LOAD_FAIL:' + name
   const ENTITY_LOAD_FAIL_CANCEL = 'react-dealerweb/ENTITY_LOAD_FAIL_CANCEL:' + name
@@ -46,6 +49,7 @@ const getModule = ({
   const ENTITIES_EDIT_STOP = 'react-dealerweb/ENTITIES_EDIT_STOP:' + name
 
   const ENTITIES_SAVE = 'react-dealerweb/ENTITIES_SAVE:' + name
+  const ENTITIES_SAVE_PROGRESS = 'react-dealerweb/ENTITIES_SAVE_PROGRESS:' + name
   const ENTITIES_SAVE_SUCCESS = 'react-dealerweb/ENTITIES_SAVE_SUCCESS:' + name
   const ENTITIES_SAVE_FAIL = 'react-dealerweb/ENTITIES_SAVE_FAIL:' + name
   const ENTITIES_SAVE_FAIL_CANCEL = 'react-dealerweb/ENTITIES_SAVE_FAIL_CANCEL:' + name
@@ -55,8 +59,7 @@ const getModule = ({
 
   const ENTITIES_DELETE = 'react-dealerweb/ENTITIES_DELETE:' + name
   const ENTITIES_DELETE_SUCCESS = 'react-dealerweb/ENTITIES_DELETE_SUCCESS:' + name
-  const ENTITIES_DELETE_FAIL = 'react-dealerweb/ENTITIES_DELETE_FAIL:' + name
-
+  
 
 
   const join = (joinConfig = {}) => ({signalR, apiClient}) =>
@@ -118,7 +121,10 @@ const getModule = ({
   }
   const load = (loadConfig={}) => 
     ({signalR, apiClient}) => {
-      const _loadConfig={...loadConfig, isDeleted: loadConfig.isDeleted && loadConfig.isDeleted!='false'}
+      const _loadConfig={
+        ...loadConfig, 
+        isDeleted: loadConfig.isDeleted && loadConfig.isDeleted!='false'
+      }
       const loadDefaults = getLoadDefaults(_loadConfig)
       return (actions, {getState}) => {
         if(getLoadHasChanged({loadDefaults, getState})) {
@@ -127,12 +133,27 @@ const getModule = ({
               const observedMessages = replayer(changes)
               const path = getLoadPath(loadDefaults)
               return apiClient.get(path)
-                .filter(result=>result.result)
-                .map(result => ({type: ENTITIES_LOAD_SUCCESS, payload: result.result}))
+                .map(result => (
+                  result.result 
+                  ? {
+                      type: ENTITIES_LOAD_SUCCESS, 
+                      payload: result.result
+                    }
+                  : {
+                      type: ENTITIES_LOAD_PROGRESS, 
+                      payload: result.progress
+                    }
+                ))
                 .concat(observedMessages)
-                .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_FAIL, payload: error}))
+                .catch(error => Rx.Observable.of({
+                  type: ENTITIES_LOAD_FAIL, 
+                  payload: error
+                }))
             })
-            .startWith({type: ENTITIES_LOAD, payload: loadDefaults})
+            .startWith({
+              type: ENTITIES_LOAD, 
+              payload: loadDefaults
+            })
             .takeUntil(
               Rx.Observable
                 .empty()
@@ -151,14 +172,27 @@ const getModule = ({
   
   const loadMore = (loadConfig) => 
     {
-    console.log('lccc', loadConfig)
     return ({apiClient}) =>   
       (actions, {getState}) => 
         apiClient.get(getLoadPath(getLoadDefaults(loadConfig)))
-          .filter(result=> result.result)
-          .map(result => ({type: ENTITIES_LOAD_MORE_SUCCESS, payload: result.result}))
-          .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_MORE_FAIL, payload: error}))
-          .startWith({type: ENTITIES_LOAD_MORE})            
+          .map(result => (
+            result.result
+            ? {
+              type: ENTITIES_LOAD_MORE_SUCCESS, 
+              payload: result.result
+            }
+            : {
+                type: ENTITIES_LOAD_MORE_PROGRESS, 
+                payload: result.progress
+              }
+          ))
+          .catch(error => Rx.Observable.of({
+            type: ENTITIES_LOAD_MORE_FAIL, 
+            payload: error
+          }))
+          .startWith({
+            type: ENTITIES_LOAD_MORE
+          })            
     }
 
   const loadSingle = (id) => ({signalR, apiClient}) => 
@@ -167,8 +201,20 @@ const getModule = ({
         return joinSingle(id)({signalR, apiClient})
           .flatMap(changes => 
             apiClient.get(getSinglePath(id))
-              .filter(result=> result.result)
-              .map(result => ({type: ENTITY_LOAD_SUCCESS, payload: result.result}))
+              .map(result => (
+                result.result
+                ? {
+                  type: ENTITY_LOAD_SUCCESS, 
+                  payload: result.result
+                }
+                : {
+                  type: ENTITY_LOAD_PROGRESS, 
+                  payload: {
+                    id,
+                    progress: result.progress
+                  }                  
+                }
+              ))
               .concat(replayer(changes))
               .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
           )
@@ -188,7 +234,10 @@ const getModule = ({
     }
   const singleLoadErrorCancel = () => ({ type: ENTITY_LOAD_FAIL_CANCEL})
 
-  const add = (parentId) => ({ type: ENTITIES_ADD, parentId: parentId})
+  const add = (parentId) => ({ 
+    type: ENTITIES_ADD, 
+    parentId: parentId
+  })
   function editStart(id) {
     return { type: ENTITIES_EDIT_START, id }
   }
@@ -196,7 +245,10 @@ const getModule = ({
   function editStop(id) {
     return { type: ENTITIES_EDIT_STOP, id }
   }
-  const saveErrorCancel = (id) => ({ type: ENTITIES_SAVE_FAIL_CANCEL, id })
+  const saveErrorCancel = (id) => ({ 
+    type: ENTITIES_SAVE_FAIL_CANCEL, 
+    id 
+  })
   
   const save = ({
     values, 
@@ -211,10 +263,24 @@ const getModule = ({
           }, files)
         .flatMap(result=>Rx.Observable.of(
           result.result
-          ? {type: ENTITIES_SAVE_SUCCESS, id: values.Id, keepEditing}
-          : {}
+          ? {
+            type: ENTITIES_SAVE_SUCCESS, 
+            id: values.Id, 
+            keepEditing
+          }
+          : {
+            type: ENTITIES_SAVE_PROGRESS, 
+            payload: {
+              id: values.Id, 
+              progress: result.progress
+            }
+          }
         ))
-        .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))  
+        .catch(error => Rx.Observable.of({
+          type: ENTITIES_SAVE_FAIL, 
+          id: values.Id, 
+          error: error
+        }))  
         .startWith({type: ENTITIES_SAVE, values})
     } else {
       const postPath = getPostPath(values)
@@ -224,10 +290,21 @@ const getModule = ({
           }, files)
         .flatMap(result=>Rx.Observable.of(
           result.result
-          ? {type: ENTITIES_ADD_SUCCESS}
-          : {}
+          ? {
+            type: ENTITIES_ADD_SUCCESS
+          }
+          : {
+            type: ENTITIES_SAVE_PROGRESS, 
+            payload: {
+              id: values.Id, 
+              progress: result.progress
+            }
+          }
         ))
-        .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))
+        .catch(error => Rx.Observable.of({
+          type: ENTITIES_SAVE_FAIL, 
+          id: values.Id, error: error
+        }))
         .startWith({type: ENTITIES_SAVE, values})
     }
   }
@@ -237,10 +314,22 @@ const getModule = ({
       apiClient.del(deletePath)
       .flatMap(result => Rx.Observable.of(
         result.result
-        ? {type: ENTITIES_DELETE_SUCCESS, id}
-        : {}
+        ? {
+          type: ENTITIES_DELETE_SUCCESS, id
+        }
+        : {
+          type: ENTITIES_SAVE_PROGRESS, 
+          payload: {
+            id, 
+            progress: result.progress
+          }
+        }
       ))
-      .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id, error: error}))
+      .catch(error => Rx.Observable.of({
+        type: ENTITIES_SAVE_FAIL, 
+        id, 
+        error: error
+      }))
       .startWith({type: ENTITIES_DELETE, id})
   }
 
@@ -288,12 +377,18 @@ const getModule = ({
     [ENTITIES_LOAD_SUCCESS]: (state, action) => ({ 
       ...state,  
       data: action.payload, 
-      loading: false
+      loading: false,
+      loadingProgress: null
     }),
     [ENTITIES_LOAD_FAIL]: (state, action) => ({
       ...state, 
       error: action.payload, 
-      loading: false
+      loading: false,
+      loadingProgress: null
+    }),
+    [ENTITIES_LOAD_PROGRESS]: (state, action) => ({
+      ...state, 
+      loadingProgress: action.payload
     }),
     [ENTITIES_LOAD_FAIL_CANCEL]: (state, action) => ({
       ...state, 
@@ -305,17 +400,24 @@ const getModule = ({
       error: null, 
       loadingMore: true
     }),
+    [ENTITIES_LOAD_MORE_PROGRESS]: (state, action) => ({
+      ...state, 
+      error: null, 
+      loadingMoreProgress: action.payload
+    }),
     [ENTITIES_LOAD_MORE_SUCCESS]: (state, action) => {
       return ({ 
         ...state,  
         data: {...state.data, Values: state.data.Values.concat(action.payload.Values)}, 
-        loadingMore: false
+        loadingMore: false,
+        loadingMoreProgress: null
       })
     },
     [ENTITIES_LOAD_MORE_FAIL]: (state, action) => ({
       ...state, 
       error: action.payload, 
-      loadingMore: false
+      loadingMore: false,
+      loadingMoreProgress: null
     }),
 
     [ENTITY_LOAD]: (state, action) => ({
@@ -372,11 +474,23 @@ const getModule = ({
         [action.values.Id]: action.values
       }
     }),
+    [ENTITIES_SAVE_PROGRESS]: (state, action) => ({
+      ...state, 
+      saveProgress: {
+        ...state.saveProgress, 
+        [action.payload.id]: action.payload.progress
+      }
+    }),
+    
     [ENTITIES_SAVE_SUCCESS]: (state, action) => ({
       ...state, 
       editing: {
         ...state.editing, 
         [action.id]: (action.keepEditing ? state.editing[action.id] : false)
+      },
+      saveProgress: {
+        ...state.saveProgress, 
+        [action.id]: null
       }, 
       saving: {
         ...state.saving, 
@@ -389,6 +503,10 @@ const getModule = ({
         ...state.saving, 
         [action.id]: false
       }, 
+      saveProgress: {
+        ...state.saveProgress, 
+        [action.id]: null
+      },
       saveError: {
         ...state.saveError, 
         [action.id]: action.error
@@ -493,7 +611,10 @@ const getModule = ({
         deleting: {
           ...state.deleting, 
           [action.id]: false
-        }, 
+        },
+        saveProgress: {
+          [action.id]: null
+        },
         data: {
           ...state.data, 
           Values: state.data.Values.filter(state => state.Id !== action.id)
@@ -527,7 +648,10 @@ const getModule = ({
         saving: {
           ...state.saving, 
           add: false
-        }, 
+        },
+        saveProgress: {
+          add: null
+        },
         editing: {
           ...state.editing, 
           add: false
@@ -558,11 +682,13 @@ const getModule = ({
       ENTITIES_UPDATE_DELETE,
 
       ENTITIES_LOAD,
+      ENTITIES_LOAD_PROGRESS,
       ENTITIES_LOAD_SUCCESS,
       ENTITIES_LOAD_FAIL,
       ENTITIES_LOAD_FAIL_CANCEL,
       
       ENTITIES_LOAD_MORE,
+      ENTITIES_LOAD_MORE_PROGRESS,
       ENTITIES_LOAD_MORE_SUCCESS,
       ENTITIES_LOAD_MORE_FAIL,
 
@@ -570,6 +696,7 @@ const getModule = ({
       ENTITY_UPDATE_DELETE,
 
       ENTITY_LOAD,
+      ENTITY_LOAD_PROGRESS,
       ENTITY_LOAD_SUCCESS,
       ENTITY_LOAD_FAIL,
       ENTITY_LOAD_FAIL_CANCEL,
@@ -580,6 +707,7 @@ const getModule = ({
       ENTITIES_EDIT_STOP,
 
       ENTITIES_SAVE,
+      ENTITIES_SAVE_PROGRESS,
       ENTITIES_SAVE_SUCCESS,
       ENTITIES_SAVE_FAIL,
       ENTITIES_SAVE_FAIL_CANCEL,
@@ -588,8 +716,7 @@ const getModule = ({
       ENTITIES_ADD_SUCCESS,
 
       ENTITIES_DELETE,
-      ENTITIES_DELETE_SUCCESS,
-      ENTITIES_DELETE_FAIL
+      ENTITIES_DELETE_SUCCESS
     },
     actions: {
       load,
