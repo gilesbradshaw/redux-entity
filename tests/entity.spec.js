@@ -676,6 +676,7 @@ describe('(Redux Module) Nodes', () => {
           id: 'testMe',
           keepEditing: true
         })
+        
         expect(res).to.eql({
           giles: 'test', 
           saving: {
@@ -1910,7 +1911,7 @@ describe('(Redux Module) Nodes', () => {
       })
 
       it('Should return a function.', () => {
-        expect(save()).to.be.a('function')
+        expect(save({})).to.be.a('function')
       })
 
       it('Should return an observable that operates when put.', function *() {
@@ -1919,21 +1920,28 @@ describe('(Redux Module) Nodes', () => {
           put: sinon.spy(()=> Promise.resolve('editied data'))
         }
         getPutPath.returns('test put path')
-        const iter = save({Id: 'testId'})({apiClient})(undefined, {
+        const iter = save({
+          values: {
+            Id: 'testId'
+          },
+          files: 'files'
+
+        })({apiClient})(undefined, {
           dispatch: _dispatchSpy, 
           getState: _getStateSpy
         }).toAsyncIterator()
-        
         expect(getPutPath.getCall(0).args[0]).to.eql({Id: 'testId'})
         expect(apiClient.put.getCall(0).args[0]).to.equal('test put path')
-        
         expect(apiClient.put.getCall(0).args[1]).to.eql({data: {Id: 'testId'}})
+        expect(apiClient.put.getCall(0).args[2]).to.equal('files')
+        
         expect(yield iter.nextValue()).to.eql({
           type: testModule.constants.ENTITIES_SAVE, 
           values: {
             Id: 'testId'
           }
         })
+        
         expect(yield iter.nextValue()).to.eql({
           type: testModule.constants.ENTITIES_SAVE_SUCCESS,
           id: 'testId',
@@ -1950,7 +1958,12 @@ describe('(Redux Module) Nodes', () => {
           put: sinon.spy(()=> Promise.resolve('editied data'))
         }
         getPutPath.returns('test put path')
-        const iter = save({Id: 'testId'}, true)({apiClient})(undefined, {
+        const iter = save({
+          values: {
+            Id: 'testId'
+          },
+          keepEditing: true
+        })({apiClient})(undefined, {
           dispatch: _dispatchSpy, 
           getState: _getStateSpy
         }).toAsyncIterator()
@@ -1982,7 +1995,13 @@ describe('(Redux Module) Nodes', () => {
         }
         postConvert.returns('post converted')
         getPostPath.returns('post path')
-        const iter = save({Id: 'testId', isNew: true})({apiClient})(undefined, {
+        const iter = save({
+          values: {
+            Id: 'testId',
+            isNew: true
+          },
+          files: 'files'
+        })({apiClient})(undefined, {
           dispatch: _dispatchSpy, 
           getState: _getStateSpy
         }).toAsyncIterator()
@@ -1998,6 +2017,7 @@ describe('(Redux Module) Nodes', () => {
 
         expect(apiClient.post.getCall(0).args[0]).to.equal('post path')
         expect(apiClient.post.getCall(0).args[1]).to.eql({data: 'post converted'})
+        expect(apiClient.post.getCall(0).args[2]).to.eql('files')
         
         expect(yield iter.nextValue()).to.eql({
           type: testModule.constants.ENTITIES_SAVE, 

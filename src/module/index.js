@@ -149,13 +149,15 @@ const getModule = ({
   const loadErrorCancel = () => ({ type: ENTITIES_LOAD_FAIL_CANCEL})
   
   const loadMore = (loadConfig) => 
-    ({apiClient}) =>   
+    {
+    console.log('lccc', loadConfig)
+    return ({apiClient}) =>   
       (actions, {getState}) => 
         Rx.Observable.fromPromise(apiClient.get(getLoadPath(getLoadDefaults(loadConfig))))
           .map(result => ({type: ENTITIES_LOAD_MORE_SUCCESS, payload: result}))
           .catch(error => Rx.Observable.of({type: ENTITIES_LOAD_MORE_FAIL, payload: error}))
           .startWith({type: ENTITIES_LOAD_MORE})            
-    
+    }
 
   const loadSingle = (id) => ({signalR, apiClient}) => 
     (actions, {getState, dispatch}) => {
@@ -193,14 +195,18 @@ const getModule = ({
   }
   const saveErrorCancel = (id) => ({ type: ENTITIES_SAVE_FAIL_CANCEL, id })
   
-  const save = (values, keepEditing)=> ({apiClient}) => {
+  const save = ({
+    values, 
+    files, 
+    keepEditing
+  })=> ({apiClient}) => {
     if(!values.isNew) {
        const putPath = getPutPath(values)
       return (actions, {getState}) => Rx.Observable.fromPromise(
         //Promise.reject('nooooooooo')
         apiClient.put(putPath, {
             data: values
-          })
+          }, files)
         ).flatMap(result=>Rx.Observable.of({type: ENTITIES_SAVE_SUCCESS, id: values.Id, keepEditing}))
         .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))  
         .startWith({type: ENTITIES_SAVE, values})
@@ -209,7 +215,7 @@ const getModule = ({
       return (actions, {getState}) => Rx.Observable.fromPromise(
         apiClient.post(postPath , {
             data: postConvert(values)
-          })
+          }, files)
         )
         .flatMap(result=>Rx.Observable.of( {type: ENTITIES_ADD_SUCCESS}))
         .catch(error => Rx.Observable.of({type: ENTITIES_SAVE_FAIL, id: values.Id, error: error}))
