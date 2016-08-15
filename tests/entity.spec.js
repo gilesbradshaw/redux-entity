@@ -17,7 +17,9 @@ describe('(Redux Module) Nodes', () => {
     getLoadSingleHasChanged,
     getSinglePath,
     getPostPath,
+    getUploadPostPath,
     getPutPath,
+    getUploadPutPath,
     getDeletePath,
     postConvert
   beforeEach(() => {
@@ -29,7 +31,9 @@ describe('(Redux Module) Nodes', () => {
     getLoadSingleHasChanged = sinon.stub()
     getSinglePath = sinon.stub()
     getPostPath = sinon.stub()
+    getUploadPostPath = sinon.stub()
     getPutPath = sinon.stub()
+    getUploadPutPath = sinon.stub()
     getDeletePath = sinon.stub()
     postConvert = sinon.stub()
 
@@ -43,7 +47,9 @@ describe('(Redux Module) Nodes', () => {
       getLoadSingleHasChanged,
       getSinglePath,
       getPostPath,
+      getUploadPostPath,
       getPutPath,
+      getUploadPutPath,
       getDeletePath,
       postConvert,
       signalRRetry: 5
@@ -89,6 +95,13 @@ describe('(Redux Module) Nodes', () => {
         ENTITIES_SAVE_SUCCESS,
         ENTITIES_SAVE_FAIL,
 
+
+        ENTITIES_UPLOAD,
+        ENTITIES_UPLOAD_PROGRESS,
+        ENTITIES_UPLOAD_SUCCESS,
+        ENTITIES_UPLOAD_FAIL,
+
+
         ENTITIES_ADD,
         ENTITIES_ADD_SUCCESS,
 
@@ -131,6 +144,12 @@ describe('(Redux Module) Nodes', () => {
     expect(ENTITIES_SAVE_SUCCESS).to.equal('react-dealerweb/ENTITIES_SAVE_SUCCESS:TESTMODULE')
     expect(ENTITIES_SAVE_FAIL).to.equal('react-dealerweb/ENTITIES_SAVE_FAIL:TESTMODULE')
 
+    expect(ENTITIES_UPLOAD).to.equal('react-dealerweb/ENTITIES_UPLOAD:TESTMODULE')
+    expect(ENTITIES_UPLOAD_PROGRESS).to.equal('react-dealerweb/ENTITIES_UPLOAD_PROGRESS:TESTMODULE')
+    expect(ENTITIES_UPLOAD_SUCCESS).to.equal('react-dealerweb/ENTITIES_UPLOAD_SUCCESS:TESTMODULE')
+    expect(ENTITIES_UPLOAD_FAIL).to.equal('react-dealerweb/ENTITIES_UPLOAD_FAIL:TESTMODULE')
+
+
     expect(ENTITIES_ADD).to.equal('react-dealerweb/ENTITIES_ADD:TESTMODULE')
     expect(ENTITIES_ADD_SUCCESS).to.equal('react-dealerweb/ENTITIES_ADD_SUCCESS:TESTMODULE')
 
@@ -165,62 +184,77 @@ describe('(Redux Module) Nodes', () => {
     beforeEach(() => {
       reducer = testModule.reducer
     })
+    describe('ENTITIES_EDIT', ()=> {
+      describe('type: ENTITIES_EDIT_START', () => {
 
-    describe('type: ENTITIES_EDIT_START', () => {
+        let editStart, ENTITIES_EDIT_START
 
-      let editStart, ENTITIES_EDIT_START
+        beforeEach(() => {
+          ENTITIES_EDIT_START = testModule.constants.ENTITIES_EDIT_START
+          editStart = testModule.actions.editStart
+        })
 
-      beforeEach(() => {
-        ENTITIES_EDIT_START = testModule.constants.ENTITIES_EDIT_START
-        editStart = testModule.actions.editStart
-      })
-
-      it('editStart returns ENTITIES_EDIT_START type', () => {
-        expect(editStart('testme')).to.eql({ type: ENTITIES_EDIT_START, id: 'testme' })
-      })
-      it('reducing editStart should set id to editing', () => {
-        expect(reducer({}, editStart('testMe'))).to.eql({ editing: { testMe: true } })
-      })
-    })
-    describe('type: ENTITIES_EDIT_STOP', () => {
-      let editStop, ENTITIES_EDIT_STOP
-
-      beforeEach(() => {
-        ENTITIES_EDIT_STOP = testModule.constants.ENTITIES_EDIT_STOP
-        editStop = testModule.actions.editStop
-      })
-
-      it('editStop returns ENTITIES_EDIT_STOP type', () => {
-        expect(editStop('testme2')).to.eql({ type: ENTITIES_EDIT_STOP, id: 'testme2' })
-      })
-      it('reducing editStop should reset id from editing', () => {
-        expect(
-          reducer({
-            editing: {
-              testMe: true,
-              testMe2: true
-            }
-          },
-            editStop('testMe'))
-        ).to.eql({
-          data: {
-            Values: []
-          },
-          editing: {
-            testMe: false,
-            testMe2: true
-          }
+        it('editStart returns ENTITIES_EDIT_START type', () => {
+          expect(editStart('testme')).to.eql({ type: ENTITIES_EDIT_START, id: 'testme' })
+        })
+        it('reducing editStart should set id to editing', () => {
+          expect(reducer({}, editStart('testMe'))).to.eql({ editing: { testMe: true } })
         })
       })
-      it('reducing editStop should remove id if it is new', () => {
-        expect(
-          reducer({
+      describe('type: ENTITIES_EDIT_STOP', () => {
+        let editStop, ENTITIES_EDIT_STOP
+
+        beforeEach(() => {
+          ENTITIES_EDIT_STOP = testModule.constants.ENTITIES_EDIT_STOP
+          editStop = testModule.actions.editStop
+        })
+
+        it('editStop returns ENTITIES_EDIT_STOP type', () => {
+          expect(editStop('testme2')).to.eql({ type: ENTITIES_EDIT_STOP, id: 'testme2' })
+        })
+        it('reducing editStop should reset id from editing', () => {
+          expect(
+            reducer({
+              editing: {
+                testMe: true,
+                testMe2: true
+              }
+            },
+              editStop('testMe'))
+          ).to.eql({
+            data: {
+              Values: []
+            },
+            editing: {
+              testMe: false,
+              testMe2: true
+            }
+          })
+        })
+        it('reducing editStop should remove id if it is new', () => {
+          expect(
+            reducer({
+              data: {
+                Values: [
+                  {
+                    Id: 'testMe',
+                    isNew: true
+                  },
+                  {
+                    Id: 'testMe2',
+                    isNew: true
+                  }
+                ]
+              },
+              editing: {
+                testMe: true,
+                testMe2: true
+              }
+            },
+              editStop('testMe'))
+          ).to.eql({
             data: {
               Values: [
-                {
-                  Id: 'testMe',
-                  isNew: true
-                },
                 {
                   Id: 'testMe2',
                   isNew: true
@@ -228,29 +262,33 @@ describe('(Redux Module) Nodes', () => {
               ]
             },
             editing: {
-              testMe: true,
+              testMe: false,
               testMe2: true
             }
-          },
-            editStop('testMe'))
-        ).to.eql({
-          data: {
-            Values: [
-              {
-                Id: 'testMe2',
-                isNew: true
-              }
-            ]
-          },
-          editing: {
-            testMe: false,
-            testMe2: true
-          }
+          })
         })
-      })
-      it('reducing editStop should remove id if it is new', () => {
-        expect(
-          reducer({
+        it('reducing editStop should remove id if it is new', () => {
+          expect(
+            reducer({
+              data: {
+                Values: [
+                  {
+                    Id: 'testMe',
+                    isNew: false
+                  },
+                  {
+                    Id: 'testMe2',
+                    isNew: true
+                  }
+                ]
+              },
+              editing: {
+                testMe: true,
+                testMe2: true
+              }
+            },
+              editStop('testMe'))
+          ).to.eql({
             data: {
               Values: [
                 {
@@ -264,920 +302,1121 @@ describe('(Redux Module) Nodes', () => {
               ]
             },
             editing: {
-              testMe: true,
+              testMe: false,
               testMe2: true
             }
-          },
-            editStop('testMe'))
-        ).to.eql({
-          data: {
-            Values: [
-              {
-                Id: 'testMe',
-                isNew: false
-              },
-              {
-                Id: 'testMe2',
-                isNew: true
-              }
-            ]
-          },
-          editing: {
-            testMe: false,
-            testMe2: true
-          }
+          })
         })
       })
     })
+    describe('ENTITIES_LOAD', ()=> {
+      describe('type: ENTITIES_LOAD', () => {
+        let ENTITIES_LOAD
 
-    describe('type: ENTITIES_LOAD', () => {
-      let ENTITIES_LOAD
-
-      beforeEach(() => {
-        ENTITIES_LOAD = testModule.constants.ENTITIES_LOAD
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD. deleted false', () => {
-        const res = reducer({
-          giles: 'test',
-          loadInitial: true
-        },
-          {
-            type: ENTITIES_LOAD,
-            payload: 'loadDefaults'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          error: null,
-          loading: true,
-          loadDeleted: false,
-          loadOrder: 'Name',
-          loadInitial: null,
-          data: null,
-          loadDefaults: 'loadDefaults'
+        beforeEach(() => {
+          ENTITIES_LOAD = testModule.constants.ENTITIES_LOAD
         })
-      })
-      it('Should be reduced with type ENTITIES_LOAD. deleted true', () => {
-        const res = reducer({
-          giles: 'test',
-          loadInitial: true
-        },
-          {
-            type: ENTITIES_LOAD,
-            payload: {
+
+        it('Should be reduced with type ENTITIES_LOAD. deleted false', () => {
+          const res = reducer({
+            giles: 'test',
+            loadInitial: true
+          },
+            {
+              type: ENTITIES_LOAD,
+              payload: 'loadDefaults'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            error: null,
+            loading: true,
+            loadDeleted: false,
+            loadOrder: 'Name',
+            loadInitial: null,
+            data: null,
+            loadDefaults: 'loadDefaults'
+          })
+        })
+        it('Should be reduced with type ENTITIES_LOAD. deleted true', () => {
+          const res = reducer({
+            giles: 'test',
+            loadInitial: true
+          },
+            {
+              type: ENTITIES_LOAD,
+              payload: {
+                isDeleted: true
+              }
+            })
+
+          expect(res).to.eql({
+            giles: 'test',
+            error: null,
+            loading: true,
+            loadDeleted: true,
+            loadOrder: 'Name',
+            loadInitial: null,
+            data: null,
+            loadDefaults: {
               isDeleted: true
             }
           })
-
-        expect(res).to.eql({
-          giles: 'test',
-          error: null,
-          loading: true,
-          loadDeleted: true,
-          loadOrder: 'Name',
-          loadInitial: null,
-          data: null,
-          loadDefaults: {
-            isDeleted: true
-          }
         })
-      })
-      it('Should be reduced with type ENTITIES_LOAD. order', () => {
-        const res = reducer({
-          giles: 'test',
-          loadInitial: true
-        }, {
-            type: ENTITIES_LOAD,
-            payload: {
-              order: 'orderMe'
-            }
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          error: null,
-          loading: true,
-          loadDeleted: false,
-          loadOrder: 'orderMe',
-          loadInitial: null,
-          data: null,
-          loadDefaults: {
-            order: 'orderMe'
-          }
-        })
-      })
-    })
-    describe('type: ENTITIES_LOAD_PROGRESS', () => {
-
-      let ENTITIES_LOAD_PROGRESS
-
-      beforeEach(() => {
-        ENTITIES_LOAD_PROGRESS = testModule.constants.ENTITIES_LOAD_PROGRESS
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_PROGRESS.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITIES_LOAD_PROGRESS,
-            payload: 'progress'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          loadingProgress: 'progress'
-        })
-      })
-    })
-    describe('type: ENTITIES_LOAD_FAIL', () => {
-
-      let ENTITIES_LOAD_FAIL
-
-      beforeEach(() => {
-        ENTITIES_LOAD_FAIL = testModule.constants.ENTITIES_LOAD_FAIL
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_FAIL.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITIES_LOAD_FAIL,
-            payload: 'error'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          error: 'error',
-          loading: false,
-          loadingProgress: null
-        })
-      })
-    })
-    describe('type: ENTITIES_LOAD_FAIL_CANCEL', () => {
-
-      let ENTITIES_LOAD_FAIL_CANCEL
-
-      beforeEach(() => {
-        ENTITIES_LOAD_FAIL_CANCEL = testModule.constants.ENTITIES_LOAD_FAIL_CANCEL
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_FAIL_CANCEL.', () => {
-        const res = reducer({
-          giles: 'test',
-          error: 'error'
-        }, {
-            type: ENTITIES_LOAD_FAIL_CANCEL
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          error: null,
-          loadDefaults: null
-        })
-      })
-    })
-    describe('type: ENTITIES_LOAD_SUCCESS', () => {
-
-      let ENTITIES_LOAD_SUCCESS
-
-      beforeEach(() => {
-        ENTITIES_LOAD_SUCCESS = testModule.constants.ENTITIES_LOAD_SUCCESS
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_SUCCESS.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITIES_LOAD_SUCCESS,
-            payload: 'data'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          data: 'data',
-          loading: false,
-          loadingProgress: null
-        })
-      })
-    })
-
-    describe('type: ENTITIES_LOAD_MORE', () => {
-
-      let ENTITIES_LOAD_MORE
-
-      beforeEach(() => {
-        ENTITIES_LOAD_MORE = testModule.constants.ENTITIES_LOAD_MORE
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_MORE.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITIES_LOAD_MORE,
-            payload: {}
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          error: null,
-          loadingMore: true
-        })
-      })
-    })
-
-    describe('type: ENTITIES_LOAD_MORE_PROGRESS', () => {
-
-      let ENTITIES_LOAD_MORE_PROGRESS
-
-      beforeEach(() => {
-        ENTITIES_LOAD_MORE_PROGRESS = testModule.constants.ENTITIES_LOAD_MORE_PROGRESS
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_MORE_PROGRESS.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITIES_LOAD_MORE_PROGRESS,
-            payload: 'progress'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          error: null,
-          loadingMoreProgress: 'progress'
-        })
-      })
-    })
-
-
-    describe('type: ENTITIES_LOAD_MORE_FAIL', () => {
-
-      let ENTITIES_LOAD_MORE_FAIL
-
-      beforeEach(() => {
-        ENTITIES_LOAD_MORE_FAIL = testModule.constants.ENTITIES_LOAD_MORE_FAIL
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_MORE_FAIL.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITIES_LOAD_MORE_FAIL,
-            payload: 'error'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          error: 'error',
-          loadingMore: false,
-          loadingMoreProgress: null
-        })
-      })
-    })
-    describe('type: ENTITIES_LOAD_MORE_SUCCESS', () => {
-
-      let ENTITIES_LOAD_MORE_SUCCESS
-
-      beforeEach(() => {
-        ENTITIES_LOAD_MORE_SUCCESS = testModule.constants.ENTITIES_LOAD_MORE_SUCCESS
-      })
-
-      it('Should be reduced with type ENTITIES_LOAD_SUCCESS.', () => {
-        const res = reducer({
-          giles: 'test',
-          data: {
-            Values: ['a', 'b', 'c']
-          }
-        }, {
-            type: ENTITIES_LOAD_MORE_SUCCESS,
-            payload: {
-              Values: ['d', 'e', 'f']
-            }
-          })
-        expect(res).to.eql({
-          giles: 'test', data:
-          {
-            Values: ['a', 'b', 'c', 'd', 'e', 'f']
-          },
-          loadingMore: false,
-          loadingMoreProgress: null
-        })
-      })
-    })
-
-    describe('type: ENTITY_LOAD', () => {
-
-      let ENTITY_LOAD
-
-      beforeEach(() => {
-        ENTITY_LOAD = testModule.constants.ENTITY_LOAD
-      })
-
-      it('Should be reduced with type ENTITY_LOAD.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITY_LOAD,
-            payload: 'testId'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          singleError: null,
-          singleLoading: true,
-          singleLoad: 'testId',
-          singleData: null
-        })
-      })
-    })
-
-    describe('type: ENTITY_LOAD_FAIL', () => {
-
-      let ENTITY_LOAD_FAIL
-
-      beforeEach(() => {
-        ENTITY_LOAD_FAIL = testModule.constants.ENTITY_LOAD_FAIL
-      })
-
-      it('Should be reduced with type ENTITY_LOAD_FAIL.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITY_LOAD_FAIL,
-            payload: 'error'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          singleError: 'error',
-          singleLoading: false
-        })
-      })
-    })
-    describe('type: ENTITY_LOAD_SUCCESS', () => {
-
-      let ENTITY_LOAD_SUCCESS
-
-      beforeEach(() => {
-        ENTITY_LOAD_SUCCESS = testModule.constants.ENTITY_LOAD_SUCCESS
-      })
-
-      it('Should be reduced with type ENTITY_LOAD_SUCCESS.', () => {
-        const res = reducer({
-          giles: 'test'
-        }, {
-            type: ENTITY_LOAD_SUCCESS,
-            payload: 'data'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          singleData: 'data',
-          singleLoading: false
-        })
-      })
-    })
-
-    describe('type: ENTITY_LOAD_FAIL_CANCEL', () => {
-
-      let ENTITY_LOAD_FAIL_CANCEL
-
-      beforeEach(() => {
-        ENTITY_LOAD_FAIL_CANCEL = testModule.constants.ENTITY_LOAD_FAIL_CANCEL
-      })
-
-      it('Should be reduced with type ENTITY_LOAD_FAIL_CANCEL.', () => {
-        const res = reducer({
-          giles: 'test',
-          singleError: 'error',
-          singleLoad: 'testId'
-        }, {
-            type: ENTITY_LOAD_FAIL_CANCEL
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          singleError: null,
-          singleLoad: null
-        })
-      })
-    })
-    describe('type: ENTITIES_SAVE', () => {
-
-      let ENTITIES_SAVE
-
-      beforeEach(() => {
-        ENTITIES_SAVE = testModule.constants.ENTITIES_SAVE
-      })
-
-      it('Should be reduced with type ENTITIES_SAVE.', () => {
-        const res = reducer({
-          giles: 'test',
-          saving: {
-            giles: true
-          }
-        }, {
-            type: ENTITIES_SAVE,
-            values: {
-              Id: 'testMe'
-            }
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          saveError: {
-            testMe: null
-          },
-          saving: {
-            testMe: {
-              Id: 'testMe'
-            },
-            giles: true
-          }
-        })
-      })
-    })
-
-    describe('type: ENTITIES_SAVE_SUCCESS', () => {
-
-      let ENTITIES_SAVE_SUCCESS
-
-      beforeEach(() => {
-        ENTITIES_SAVE_SUCCESS = testModule.constants.ENTITIES_SAVE_SUCCESS
-      })
-
-      it('Should be reduced with type ENTITIES_SAVE_SUCCESS.', () => {
-        const res = reducer({
-          giles: 'test',
-          saving: {
-            testMe: true,
-            giles: true
-          },
-          saveProgress: {
-            testMe: 'testme',
-            giles: 'progress'
-          }
-        }, {
-            type: ENTITIES_SAVE_SUCCESS,
-            id: 'testMe'
-          })
-          
-        expect(res).to.eql({
-          giles: 'test',
-          saving: {
-            testMe: false,
-            giles: true
-          },
-          saveProgress: {
-            testMe: null,
-            giles: 'progress'
-          },
-          editing: {
-            testMe: false
-          }
-        })
-      })
-      describe('type: ENTITIES_SAVE_PROGRESS', () => {
-
-        let ENTITIES_SAVE_PROGRESS
-
-        beforeEach(() => {
-          ENTITIES_SAVE_PROGRESS = testModule.constants.ENTITIES_SAVE_PROGRESS
-        })
-
-        it('Should be reduced with type ENTITIES_SAVE_PROGRESS.', () => {
+        it('Should be reduced with type ENTITIES_LOAD. order', () => {
           const res = reducer({
             giles: 'test',
-            saveProgress: {
-              testMe: 'testme'
-            }
+            loadInitial: true
           }, {
-              type: ENTITIES_SAVE_PROGRESS,
+              type: ENTITIES_LOAD,
               payload: {
-                id: 'giles',
-                progress: 'progress'
+                order: 'orderMe'
               }
             })
           expect(res).to.eql({
             giles: 'test',
+            error: null,
+            loading: true,
+            loadDeleted: false,
+            loadOrder: 'orderMe',
+            loadInitial: null,
+            data: null,
+            loadDefaults: {
+              order: 'orderMe'
+            }
+          })
+        })
+      })
+      describe('type: ENTITIES_LOAD_PROGRESS', () => {
+
+        let ENTITIES_LOAD_PROGRESS
+
+        beforeEach(() => {
+          ENTITIES_LOAD_PROGRESS = testModule.constants.ENTITIES_LOAD_PROGRESS
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_PROGRESS.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITIES_LOAD_PROGRESS,
+              payload: 'progress'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            loadingProgress: 'progress'
+          })
+        })
+      })
+      describe('type: ENTITIES_LOAD_FAIL', () => {
+
+        let ENTITIES_LOAD_FAIL
+
+        beforeEach(() => {
+          ENTITIES_LOAD_FAIL = testModule.constants.ENTITIES_LOAD_FAIL
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_FAIL.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITIES_LOAD_FAIL,
+              payload: 'error'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            error: 'error',
+            loading: false,
+            loadingProgress: null
+          })
+        })
+      })
+      describe('type: ENTITIES_LOAD_FAIL_CANCEL', () => {
+
+        let ENTITIES_LOAD_FAIL_CANCEL
+
+        beforeEach(() => {
+          ENTITIES_LOAD_FAIL_CANCEL = testModule.constants.ENTITIES_LOAD_FAIL_CANCEL
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_FAIL_CANCEL.', () => {
+          const res = reducer({
+            giles: 'test',
+            error: 'error'
+          }, {
+              type: ENTITIES_LOAD_FAIL_CANCEL
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            error: null,
+            loadDefaults: null
+          })
+        })
+      })
+      describe('type: ENTITIES_LOAD_SUCCESS', () => {
+
+        let ENTITIES_LOAD_SUCCESS
+
+        beforeEach(() => {
+          ENTITIES_LOAD_SUCCESS = testModule.constants.ENTITIES_LOAD_SUCCESS
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_SUCCESS.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITIES_LOAD_SUCCESS,
+              payload: 'data'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            data: 'data',
+            loading: false,
+            loadingProgress: null
+          })
+        })
+      })
+    })
+    describe('ENTITIES_LOAD_MORE', ()=> {
+      describe('type: ENTITIES_LOAD_MORE', () => {
+
+        let ENTITIES_LOAD_MORE
+
+        beforeEach(() => {
+          ENTITIES_LOAD_MORE = testModule.constants.ENTITIES_LOAD_MORE
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_MORE.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITIES_LOAD_MORE,
+              payload: {}
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            error: null,
+            loadingMore: true
+          })
+        })
+      })
+
+      describe('type: ENTITIES_LOAD_MORE_PROGRESS', () => {
+
+        let ENTITIES_LOAD_MORE_PROGRESS
+
+        beforeEach(() => {
+          ENTITIES_LOAD_MORE_PROGRESS = testModule.constants.ENTITIES_LOAD_MORE_PROGRESS
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_MORE_PROGRESS.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITIES_LOAD_MORE_PROGRESS,
+              payload: 'progress'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            error: null,
+            loadingMoreProgress: 'progress'
+          })
+        })
+      })
+
+
+      describe('type: ENTITIES_LOAD_MORE_FAIL', () => {
+
+        let ENTITIES_LOAD_MORE_FAIL
+
+        beforeEach(() => {
+          ENTITIES_LOAD_MORE_FAIL = testModule.constants.ENTITIES_LOAD_MORE_FAIL
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_MORE_FAIL.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITIES_LOAD_MORE_FAIL,
+              payload: 'error'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            error: 'error',
+            loadingMore: false,
+            loadingMoreProgress: null
+          })
+        })
+      })
+      describe('type: ENTITIES_LOAD_MORE_SUCCESS', () => {
+
+        let ENTITIES_LOAD_MORE_SUCCESS
+
+        beforeEach(() => {
+          ENTITIES_LOAD_MORE_SUCCESS = testModule.constants.ENTITIES_LOAD_MORE_SUCCESS
+        })
+
+        it('Should be reduced with type ENTITIES_LOAD_SUCCESS.', () => {
+          const res = reducer({
+            giles: 'test',
+            data: {
+              Values: ['a', 'b', 'c']
+            }
+          }, {
+              type: ENTITIES_LOAD_MORE_SUCCESS,
+              payload: {
+                Values: ['d', 'e', 'f']
+              }
+            })
+          expect(res).to.eql({
+            giles: 'test', data:
+            {
+              Values: ['a', 'b', 'c', 'd', 'e', 'f']
+            },
+            loadingMore: false,
+            loadingMoreProgress: null
+          })
+        })
+      })
+    })
+    describe('ENTITY_LOAD', ()=> {
+      describe('type: ENTITY_LOAD', () => {
+
+        let ENTITY_LOAD
+
+        beforeEach(() => {
+          ENTITY_LOAD = testModule.constants.ENTITY_LOAD
+        })
+
+        it('Should be reduced with type ENTITY_LOAD.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITY_LOAD,
+              payload: 'testId'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            singleError: null,
+            singleLoading: true,
+            singleLoad: 'testId',
+            singleData: null
+          })
+        })
+      })
+
+      describe('type: ENTITY_LOAD_FAIL', () => {
+
+        let ENTITY_LOAD_FAIL
+
+        beforeEach(() => {
+          ENTITY_LOAD_FAIL = testModule.constants.ENTITY_LOAD_FAIL
+        })
+
+        it('Should be reduced with type ENTITY_LOAD_FAIL.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITY_LOAD_FAIL,
+              payload: 'error'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            singleError: 'error',
+            singleLoading: false
+          })
+        })
+      })
+      describe('type: ENTITY_LOAD_SUCCESS', () => {
+
+        let ENTITY_LOAD_SUCCESS
+
+        beforeEach(() => {
+          ENTITY_LOAD_SUCCESS = testModule.constants.ENTITY_LOAD_SUCCESS
+        })
+
+        it('Should be reduced with type ENTITY_LOAD_SUCCESS.', () => {
+          const res = reducer({
+            giles: 'test'
+          }, {
+              type: ENTITY_LOAD_SUCCESS,
+              payload: 'data'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            singleData: 'data',
+            singleLoading: false
+          })
+        })
+      })
+
+      describe('type: ENTITY_LOAD_FAIL_CANCEL', () => {
+
+        let ENTITY_LOAD_FAIL_CANCEL
+
+        beforeEach(() => {
+          ENTITY_LOAD_FAIL_CANCEL = testModule.constants.ENTITY_LOAD_FAIL_CANCEL
+        })
+
+        it('Should be reduced with type ENTITY_LOAD_FAIL_CANCEL.', () => {
+          const res = reducer({
+            giles: 'test',
+            singleError: 'error',
+            singleLoad: 'testId'
+          }, {
+              type: ENTITY_LOAD_FAIL_CANCEL
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            singleError: null,
+            singleLoad: null
+          })
+        })
+      })
+    })
+    describe('ENTITIES_UPLOAD', ()=> {
+
+      describe('type: ENTITIES_UPLOAD', () => {
+
+        let ENTITIES_UPLOAD
+
+        beforeEach(() => {
+          ENTITIES_UPLOAD = testModule.constants.ENTITIES_UPLOAD
+        })
+
+        it('Should be reduced with type ENTITIES_UPLOAD.', () => {
+          const res = reducer({
+            giles: 'test',
+            uploadError: {
+              testMe: {
+                uploadExistingErrorTest: 'existingError'
+              }
+            },
+            uploading: {
+              giles: true,
+              testMe: {
+                uploadExistingTest: 'test'
+              }
+            }
+          }, {
+              type: ENTITIES_UPLOAD,
+              payload: {
+                uploadType: 'uploadType',
+                values: {
+                  Id: 'testMe'
+                },
+                files: 'files'
+              }
+            })
+          const expected = {
+            giles: 'test',
+            uploadError: {
+              testMe: {
+                uploadExistingErrorTest: 'existingError',
+                uploadType: null
+              },
+            },
+            uploading: {
+              testMe: {
+                uploadExistingTest: 'test',
+                uploadType: {
+                  values: {
+                      Id: 'testMe'
+                    },
+                  files: 'files'
+                }
+              },
+              giles: true
+            }
+          }
+          expect(res).to.eql(expected)
+        })
+        it('Should be reduced with type ENTITIES_UPLOAD. error nulled when no more', () => {
+          const res = reducer({
+            uploadError: {
+              testMe: {
+                uploadType: 'existingError'
+              }
+            }
+          }, {
+              type: ENTITIES_UPLOAD,
+              payload: {
+                uploadType: 'uploadType',
+                values: {
+                  Id: 'testMe'
+                },
+                files: 'files'
+              }
+            })
+          const expected = {
+            uploadError: {
+              testMe: null,
+            },
+            uploading: {
+              testMe: {
+                uploadType: {
+                  values: {
+                      Id: 'testMe'
+                    },
+                  files: 'files'
+                }
+              }
+            }
+          }
+          expect(res).to.eql(expected)
+        })
+      })
+      describe('type: ENTITIES_UPLOAD_SUCCESS', () => {
+
+        let ENTITIES_UPLOAD_SUCCESS
+
+        beforeEach(() => {
+          ENTITIES_UPLOAD_SUCCESS = testModule.constants.ENTITIES_UPLOAD_SUCCESS
+        })
+
+        it('Should be reduced with type ENTITIES_UPLOAD_SUCCESS.', () => {
+          const res = reducer({
+            giles: 'test',
+            uploading: {
+              testMe: {
+                uploadType: true,
+                otherUploadType: true
+              },
+              giles: true
+            },
+            uploadProgress: {
+              testMe: {
+                uploadType: true,
+                otherUploadType: true
+              },
+              giles: 'progress'
+            }
+          }, {
+              type: ENTITIES_UPLOAD_SUCCESS,
+              payload: {
+                uploadType: 'uploadType',
+                values: {
+                  Id: 'testMe'
+                }
+              }
+            })
+          const expected = {
+            giles: 'test',
+            uploading: {
+              testMe: {
+                uploadType: null,
+                otherUploadType: true
+              },
+              giles: true
+            },
+            uploadProgress: {
+              testMe: {
+                uploadType: null,
+                otherUploadType: true
+              },
+              giles: 'progress'
+            }
+          }
+          expect(res).to.eql(expected)
+        })
+      })
+      describe('type: ENTITIES_UPLOAD_PROGRESS', () => {
+
+        let ENTITIES_UPLOAD_PROGRESS
+
+        beforeEach(() => {
+          ENTITIES_UPLOAD_PROGRESS = testModule.constants.ENTITIES_UPLOAD_PROGRESS
+        })
+
+        it('Should be reduced with type ENTITIES_UPLOAD_PROGRESS.', () => {
+          const res = reducer({
+            giles: 'test',
+            uploadProgress: {
+              testMe: 'testme',
+              giles: {
+                existingType: 'test'
+              }
+              
+            }
+          }, {
+              type: ENTITIES_UPLOAD_PROGRESS,
+              payload: {
+                values: {
+                  Id: 'giles'
+                },
+                uploadType: 'uploadType',
+                progress: 'progress'
+              }
+            })
+          const expected ={
+            giles: 'test',
+            uploadProgress: {
+              testMe: 'testme',
+              giles: {
+                existingType: 'test',
+                uploadType: 'progress'
+              }
+            }
+          }
+          expect(res).to.eql(expected)
+        })
+      })
+
+      describe('type: ENTITIES_UPLOAD_FAIL', () => {
+
+        let ENTITIES_UPLOAD_FAIL
+
+        beforeEach(() => {
+          ENTITIES_UPLOAD_FAIL = testModule.constants.ENTITIES_UPLOAD_FAIL
+        })
+
+        it('Should be reduced with type ENTITIES_UPLOAD_FAIL.', () => {
+          const res = reducer({
+            giles: 'test',
+            uploading: {
+              testMe: {
+                uploadType: true,
+                otherUploadType: true
+              }
+            },
+            uploadProgress: {
+              testMe: {
+                uploadType: true,
+                otherUploadType: true
+              }
+            },
+            uploadError: {
+              testMe: {
+                otherUploadType: true
+              }
+            }
+          }, {
+              type: ENTITIES_UPLOAD_FAIL,
+              payload: {
+                values: {
+                  Id: 'testMe'
+                },
+                uploadType: 'uploadType',
+                error: 'damn2'
+              }
+            })
+          const expected = {
+            giles: 'test',
+            uploading: {
+              testMe: {
+                uploadType: null,
+                otherUploadType: true
+              }
+            },
+            uploadProgress: {
+              testMe: {
+                uploadType: null,
+                otherUploadType: true
+              }
+            },
+            uploadError: {
+              testMe: {
+                otherUploadType: true,
+                uploadType: 'damn2'
+              }
+            }
+          }
+          expect(res).to.eql(expected)
+        })
+      })
+      describe('type: ENTITIES_UPLOAD_FAIL_CANCEL', () => {
+
+        let ENTITIES_UPLOAD_FAIL_CANCEL
+
+        beforeEach(() => {
+          ENTITIES_UPLOAD_FAIL_CANCEL = testModule.constants.ENTITIES_UPLOAD_FAIL_CANCEL
+        })
+
+        it('Should be reduced with type ENTITIES_UPLOAD_FAIL_CANCEL.', () => {
+          const res = reducer({
+            giles: 'test',
+            uploadError: {
+              giles: 'damn',
+              [99]: {
+                testError: true,
+                testError2: true
+              }
+            }
+          }, {
+              type: ENTITIES_UPLOAD_FAIL_CANCEL,
+              payload: {
+                id: 99,
+                uploadType: 'testError'
+              }
+              
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            uploadError: {
+              giles: 'damn',
+              [99]: {
+                testError: null,
+                testError2: true
+              }
+            }
+          })
+        })
+      })
+
+    })
+    
+    describe('ENITIES_SAVE', ()=> {
+
+      describe('type: ENTITIES_SAVE', () => {
+
+        let ENTITIES_SAVE
+
+        beforeEach(() => {
+          ENTITIES_SAVE = testModule.constants.ENTITIES_SAVE
+        })
+
+        it('Should be reduced with type ENTITIES_SAVE.', () => {
+          const res = reducer({
+            giles: 'test',
+            saving: {
+              giles: true
+            }
+          }, {
+              type: ENTITIES_SAVE,
+              values: {
+                Id: 'testMe'
+              }
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            saveError: {
+              testMe: null
+            },
+            saving: {
+              testMe: {
+                Id: 'testMe'
+              },
+              giles: true
+            }
+          })
+        })
+      })
+
+      describe('type: ENTITIES_SAVE_SUCCESS', () => {
+
+        let ENTITIES_SAVE_SUCCESS
+
+        beforeEach(() => {
+          ENTITIES_SAVE_SUCCESS = testModule.constants.ENTITIES_SAVE_SUCCESS
+        })
+
+        it('Should be reduced with type ENTITIES_SAVE_SUCCESS.', () => {
+          const res = reducer({
+            giles: 'test',
+            saving: {
+              testMe: true,
+              giles: true
+            },
             saveProgress: {
               testMe: 'testme',
               giles: 'progress'
             }
+          }, {
+              type: ENTITIES_SAVE_SUCCESS,
+              id: 'testMe'
+            })
+            
+          expect(res).to.eql({
+            giles: 'test',
+            saving: {
+              testMe: false,
+              giles: true
+            },
+            saveProgress: {
+              testMe: null,
+              giles: 'progress'
+            },
+            editing: {
+              testMe: false
+            }
+          })
+        })
+        describe('type: ENTITIES_SAVE_PROGRESS', () => {
+
+          let ENTITIES_SAVE_PROGRESS
+
+          beforeEach(() => {
+            ENTITIES_SAVE_PROGRESS = testModule.constants.ENTITIES_SAVE_PROGRESS
+          })
+
+          it('Should be reduced with type ENTITIES_SAVE_PROGRESS.', () => {
+            const res = reducer({
+              giles: 'test',
+              saveProgress: {
+                testMe: 'testme'
+              }
+            }, {
+                type: ENTITIES_SAVE_PROGRESS,
+                payload: {
+                  id: 'giles',
+                  progress: 'progress'
+                }
+              })
+            expect(res).to.eql({
+              giles: 'test',
+              saveProgress: {
+                testMe: 'testme',
+                giles: 'progress'
+              }
+            })
+          })
+        })
+
+        it('Should be reduced with type ENTITIES_SAVE_SUCCESS. keepEditing', () => {
+          const res = reducer({
+            giles: 'test',
+            saving: {
+              testMe: true,
+              giles: true
+            },
+            saveProgress: {
+              testMe: 'testme',
+              giles: 'progress'
+            },
+            editing: {
+              testMe: 'keep me'
+            }
+          }, {
+              type: ENTITIES_SAVE_SUCCESS,
+              id: 'testMe',
+              keepEditing: true
+            })
+
+          expect(res).to.eql({
+            giles: 'test',
+            saving: {
+              testMe: false,
+              giles: true
+            },
+            saveProgress: {
+              testMe: null,
+              giles: 'progress'
+            },
+            editing: {
+              testMe: 'keep me'
+            }
           })
         })
       })
 
-      it('Should be reduced with type ENTITIES_SAVE_SUCCESS. keepEditing', () => {
-        const res = reducer({
-          giles: 'test',
-          saving: {
-            testMe: true,
-            giles: true
-          },
-          saveProgress: {
-            testMe: 'testme',
-            giles: 'progress'
-          },
-          editing: {
-            testMe: 'keep me'
-          }
-        }, {
-            type: ENTITIES_SAVE_SUCCESS,
-            id: 'testMe',
-            keepEditing: true
-          })
+      describe('type: ENTITIES_SAVE_FAIL', () => {
 
-        expect(res).to.eql({
-          giles: 'test',
-          saving: {
-            testMe: false,
-            giles: true
-          },
-          saveProgress: {
-            testMe: null,
-            giles: 'progress'
-          },
-          editing: {
-            testMe: 'keep me'
-          }
+        let ENTITIES_SAVE_FAIL
+
+        beforeEach(() => {
+          ENTITIES_SAVE_FAIL = testModule.constants.ENTITIES_SAVE_FAIL
+        })
+
+        it('Should be reduced with type ENTITIES_SAVE_FAIL.', () => {
+          const res = reducer({
+            giles: 'test',
+            saving: {
+              testMe: true
+            },
+            saveProgress: {
+              testMe: 'progress'
+            },
+            saveError: {
+              giles: 'damn'
+            }
+          }, {
+              type: ENTITIES_SAVE_FAIL,
+              id: 'testMe',
+              error: 'damn2'
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            saving: {
+              testMe: false
+            },
+            saveProgress: {
+              testMe: null
+            },
+            saveError: {
+              giles: 'damn',
+              testMe: 'damn2'
+            }
+          })
+        })
+      })
+
+      describe('type: ENTITIES_SAVE_FAIL_CANCEL', () => {
+
+        let ENTITIES_SAVE_FAIL_CANCEL
+
+        beforeEach(() => {
+          ENTITIES_SAVE_FAIL_CANCEL = testModule.constants.ENTITIES_SAVE_FAIL_CANCEL
+        })
+
+        it('Should be reduced with type ENTITIES_SAVE_FAIL_CANCEL.', () => {
+          const res = reducer({
+            giles: 'test',
+            saveError: {
+              giles: 'damn',
+              [99]: true
+            }
+          }, {
+              type: ENTITIES_SAVE_FAIL_CANCEL,
+              id: 99
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            saveError: {
+              giles: 'damn',
+              [99]: null
+            }
+          })
         })
       })
     })
+    describe('ENTITIES_UPDATE', ()=> {
+      describe('type: ENTITIES_UPDATE_PUT', () => {
 
-    describe('type: ENTITIES_SAVE_FAIL', () => {
+        let ENTITIES_UPDATE_PUT
 
-      let ENTITIES_SAVE_FAIL
-
-      beforeEach(() => {
-        ENTITIES_SAVE_FAIL = testModule.constants.ENTITIES_SAVE_FAIL
-      })
-
-      it('Should be reduced with type ENTITIES_SAVE_FAIL.', () => {
-        const res = reducer({
-          giles: 'test',
-          saving: {
-            testMe: true
-          },
-          saveProgress: {
-            testMe: 'progress'
-          },
-          saveError: {
-            giles: 'damn'
-          }
-        }, {
-            type: ENTITIES_SAVE_FAIL,
-            id: 'testMe',
-            error: 'damn2'
-          })
-        expect(res).to.eql({
-          giles: 'test',
-          saving: {
-            testMe: false
-          },
-          saveProgress: {
-            testMe: null
-          },
-          saveError: {
-            giles: 'damn',
-            testMe: 'damn2'
-          }
+        beforeEach(() => {
+          ENTITIES_UPDATE_PUT = testModule.constants.ENTITIES_UPDATE_PUT
         })
-      })
-    })
 
-    describe('type: ENTITIES_SAVE_FAIL_CANCEL', () => {
-
-      let ENTITIES_SAVE_FAIL_CANCEL
-
-      beforeEach(() => {
-        ENTITIES_SAVE_FAIL_CANCEL = testModule.constants.ENTITIES_SAVE_FAIL_CANCEL
-      })
-
-      it('Should be reduced with type ENTITIES_SAVE_FAIL_CANCEL.', () => {
-        const res = reducer({
-          giles: 'test',
-          saveError: {
-            giles: 'damn',
-            [99]: true
+        it('reduced with type "ENTITIES_UPDATE_PUT".', () => {
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+                {
+                  Id: 'testId',
+                  Prop: 'prop',
+                  Name: 'giles'
+                }
+              ]
+            }
           }
-        }, {
-            type: ENTITIES_SAVE_FAIL_CANCEL,
-            id: 99
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              Id: 'testId',
+              Name: 'fred',
+              Prop1: 'prop1'
+            }
           })
-        expect(res).to.eql({
-          giles: 'test',
-          saveError: {
-            giles: 'damn',
-            [99]: null
-          }
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+                {
+                  'Id': 'testId',
+                  'Name': 'fred',
+                  Prop: 'prop',
+                  Prop1: 'prop1'
+                }
+              ]
+            },
+            singleData: undefined
+          })
         })
-      })
-    })
+        it('reduced with type "ENTITIES_UPDATE_PUT with no data".', () => {
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              Id: 'testId',
+              Name: 'fred',
+              Prop1: 'prop1'
+            }
+          })
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: undefined,
+              Values: []
+            },
+            singleData: undefined
+          })
+        })
+        it('reduced with type "ENTITIES_UPDATE_PUT with singledata".', () => {
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            singleData: {
+              Id: 'testId',
+              Name: 'fredy',
+              Prop1: 'prop1y'
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              Id: 'testId',
+              Name: 'fred',
+              Prop1: 'prop1'
+            }
+          })
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: undefined,
+              Values: []
+            },
+            singleData: {
+              Id: 'testId',
+              Name: 'fred',
+              Prop1: 'prop1'
+            }
+          })
+        })
 
-    describe('type: ENTITIES_UPDATE_PUT', () => {
-
-      let ENTITIES_UPDATE_PUT
-
-      beforeEach(() => {
-        ENTITIES_UPDATE_PUT = testModule.constants.ENTITIES_UPDATE_PUT
-      })
-
-      it('reduced with type "ENTITIES_UPDATE_PUT".', () => {
-        const state = {
-          giles: 'test',
-          loadOrder: 'Whatever',
-          data: {
-            TotalCount: 10,
-            Values: [
-              {
+        it('reduced with type "ENTITIES_UPDATE_PUT" deleted.', () => {
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            loadDeleted: false,
+            data: {
+              TotalCount: 101,
+              Values: [{
                 Id: 'testId',
                 Prop: 'prop',
                 Name: 'giles'
-              }
-            ]
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_UPDATE_PUT,
-          payload: {
-            Id: 'testId',
-            Name: 'fred',
-            Prop1: 'prop1'
-          }
-        })
-        expect(res).to.eql({
-          giles: 'test',
-          loadOrder: 'Whatever',
-          data: {
-            TotalCount: 10,
-            Values: [
-              {
-                'Id': 'testId',
-                'Name': 'fred',
-                Prop: 'prop',
-                Prop1: 'prop1'
-              }
-            ]
-          },
-          singleData: undefined
-        })
-      })
-      it('reduced with type "ENTITIES_UPDATE_PUT with no data".', () => {
-        const state = {
-          giles: 'test',
-          loadOrder: 'Whatever',
-        }
-        const res = reducer(state, {
-          type: ENTITIES_UPDATE_PUT,
-          payload: {
-            Id: 'testId',
-            Name: 'fred',
-            Prop1: 'prop1'
-          }
-        })
-        expect(res).to.eql({
-          giles: 'test',
-          loadOrder: 'Whatever',
-          data: {
-            TotalCount: undefined,
-            Values: []
-          },
-          singleData: undefined
-        })
-      })
-      it('reduced with type "ENTITIES_UPDATE_PUT with singledata".', () => {
-        const state = {
-          giles: 'test',
-          loadOrder: 'Whatever',
-          singleData: {
-            Id: 'testId',
-            Name: 'fredy',
-            Prop1: 'prop1y'
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_UPDATE_PUT,
-          payload: {
-            Id: 'testId',
-            Name: 'fred',
-            Prop1: 'prop1'
-          }
-        })
-        expect(res).to.eql({
-          giles: 'test',
-          loadOrder: 'Whatever',
-          data: {
-            TotalCount: undefined,
-            Values: []
-          },
-          singleData: {
-            Id: 'testId',
-            Name: 'fred',
-            Prop1: 'prop1'
-          }
-        })
-      })
-
-      it('reduced with type "ENTITIES_UPDATE_PUT" deleted.', () => {
-        const state = {
-          giles: 'test',
-          loadOrder: 'Whatever',
-          loadDeleted: false,
-          data: {
-            TotalCount: 101,
-            Values: [{
-              Id: 'testId',
-              Prop: 'prop',
-              Name: 'giles'
-            }]
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_UPDATE_PUT,
-          payload: {
-            Id: 'testId',
-            IsDeleted: true
-          }
-        })
-        expect(res).to.eql({
-          giles: 'test',
-          loadOrder: 'Whatever',
-          loadDeleted: false,
-          data: {
-            TotalCount: 100,
-            Values: []
-          },
-          singleData: undefined
-        })
-      })
-      it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required default order.', () => {
-        const state = {
-          giles: 'test',
-          loadDeleted: true,
-          loadOrder: 'Id',
-          data: {
-            TotalCount: 11,
-            Values: [{
-              Id: 'testId',
-              IsDeleted: true,
-              Prop: 'prop',
-              Name: 'giles'
-            }]
-          }
-        }
-        const res = reducer(
-          state,
-          {
-            type: ENTITIES_UPDATE_PUT,
-            payload: {
-              Id: 'testId2',
-              IsDeleted: true
+              }]
             }
           }
-        )
-        expect(res).to.eql({
-          'giles': 'test',
-          loadDeleted: true,
-          loadOrder: 'Id',
-          'data': {
-            TotalCount: 12,
-            Values: [{
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
               Id: 'testId',
-              IsDeleted: true,
-              Prop: 'prop',
-              Name: 'giles'
-            },
-              {
-                Id: 'testId2',
-                IsDeleted: true
-              }]
-          },
-          singleData: undefined
-        })
-      })
-      it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required reverse order.', () => {
-        const state = {
-          giles: 'test',
-          loadDeleted: true,
-          loadOrder: '-Id',
-          data: {
-            TotalCount: 11,
-            Values: [{
-              Id: 'testId',
-              IsDeleted: true,
-              Prop: 'prop',
-              Name: 'giles'
-            }]
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_UPDATE_PUT,
-          payload: {
-            Id: 'testId2',
-            IsDeleted: true
-          }
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          loadDeleted: true,
-          loadOrder: '-Id',
-          'data': {
-            TotalCount: 12,
-            Values: [{
-              Id: 'testId2',
               IsDeleted: true
+            }
+          })
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            loadDeleted: false,
+            data: {
+              TotalCount: 100,
+              Values: []
             },
-              {
+            singleData: undefined
+          })
+        })
+        it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required default order.', () => {
+          const state = {
+            giles: 'test',
+            loadDeleted: true,
+            loadOrder: 'Id',
+            data: {
+              TotalCount: 11,
+              Values: [{
                 Id: 'testId',
                 IsDeleted: true,
                 Prop: 'prop',
                 Name: 'giles'
               }]
-          },
-          singleData: undefined
-        })
-      })
-    })
-    describe('type: ENTITIES_UPDATE_POST', () => {
-
-      let ENTITIES_UPDATE_POST
-
-      beforeEach(() => {
-        ENTITIES_UPDATE_POST = testModule.constants.ENTITIES_UPDATE_POST
-      })
-
-      it('reduced with type "ENTITIES_UPDATE_POST". adding new default order (Name)', () => {
-        const state = {
-          giles: 'test',
-          loadOrder: 'Name',
-          data: {
-            TotalCount: 12,
-            Values: [{
-              Id: 'testId',
-              Name: 'giles',
-              Prop: 'prop'
-            }]
+            }
           }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_UPDATE_POST,
-          payload: {
-            Id: 'testId1',
-            Prop1: 'prop1',
-            Name: 'fred2'
-          }
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          loadOrder: 'Name',
-          'data': {
-            TotalCount: 13,
-            Values: [{
-              'Id': 'testId1',
-              'Prop1': 'prop1',
-              'Name': 'fred2'
+          const res = reducer(
+            state,
+            {
+              type: ENTITIES_UPDATE_PUT,
+              payload: {
+                Id: 'testId2',
+                IsDeleted: true
+              }
+            }
+          )
+          expect(res).to.eql({
+            'giles': 'test',
+            loadDeleted: true,
+            loadOrder: 'Id',
+            'data': {
+              TotalCount: 12,
+              Values: [{
+                Id: 'testId',
+                IsDeleted: true,
+                Prop: 'prop',
+                Name: 'giles'
+              },
+                {
+                  Id: 'testId2',
+                  IsDeleted: true
+                }]
             },
-              {
-                'Id': 'testId',
-                'Name': 'giles',
-                Prop: 'prop'
-              }]
-          }
+            singleData: undefined
+          })
         })
-      })
-
-      it('reduced with type "ENTITIES_UPDATE_POST". adding new reverse order (-Name)', () => {
-        const state = {
-          giles: 'test',
-          loadOrder: '-Name',
-          data: {
-            TotalCount: 12,
-            Values: [{
-              Id: 'testId',
-              Name: 'giles',
-              Prop: 'prop'
-            }]
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_UPDATE_POST,
-          payload: {
-            Id: 'testId1',
-            Prop1: 'prop1',
-            Name: 'fred2'
-          }
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          loadOrder: '-Name',
-          'data': {
-            TotalCount: 13,
-            Values: [{
-              'Id': 'testId',
-              'Name': 'giles',
-              Prop: 'prop'
-            },
-              {
-                'Id': 'testId1',
-                'Prop1': 'prop1',
-                'Name': 'fred2'
-              }]
-          }
-        })
-
-        it('reduced with type "ENTITIES_UPDATE_POST". posting existing', () => {
+        it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required reverse order.', () => {
           const state = {
             giles: 'test',
-            loadOrder: 'Whatever',
+            loadDeleted: true,
+            loadOrder: '-Id',
             data: {
+              TotalCount: 11,
+              Values: [{
+                Id: 'testId',
+                IsDeleted: true,
+                Prop: 'prop',
+                Name: 'giles'
+              }]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              Id: 'testId2',
+              IsDeleted: true
+            }
+          })
+          expect(res).to.eql({
+            'giles': 'test',
+            loadDeleted: true,
+            loadOrder: '-Id',
+            'data': {
+              TotalCount: 12,
+              Values: [{
+                Id: 'testId2',
+                IsDeleted: true
+              },
+                {
+                  Id: 'testId',
+                  IsDeleted: true,
+                  Prop: 'prop',
+                  Name: 'giles'
+                }]
+            },
+            singleData: undefined
+          })
+        })
+      })
+      describe('type: ENTITIES_UPDATE_POST', () => {
+
+        let ENTITIES_UPDATE_POST
+
+        beforeEach(() => {
+          ENTITIES_UPDATE_POST = testModule.constants.ENTITIES_UPDATE_POST
+        })
+
+        it('reduced with type "ENTITIES_UPDATE_POST". adding new default order (Name)', () => {
+          const state = {
+            giles: 'test',
+            loadOrder: 'Name',
+            data: {
+              TotalCount: 12,
               Values: [{
                 Id: 'testId',
                 Name: 'giles',
@@ -1188,293 +1427,383 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_POST,
             payload: {
-              Id: 'testId',
+              Id: 'testId1',
               Prop1: 'prop1',
               Name: 'fred2'
             }
           })
           expect(res).to.eql({
             'giles': 'test',
-            loadOrder: 'Whatever',
+            loadOrder: 'Name',
             'data': {
+              TotalCount: 13,
               Values: [{
-                'Id': 'testId',
+                'Id': 'testId1',
                 'Prop1': 'prop1',
                 'Name': 'fred2'
+              },
+                {
+                  'Id': 'testId',
+                  'Name': 'giles',
+                  Prop: 'prop'
+                }]
+            }
+          })
+        })
+
+        it('reduced with type "ENTITIES_UPDATE_POST". adding new reverse order (-Name)', () => {
+          const state = {
+            giles: 'test',
+            loadOrder: '-Name',
+            data: {
+              TotalCount: 12,
+              Values: [{
+                Id: 'testId',
+                Name: 'giles',
+                Prop: 'prop'
               }]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_POST,
+            payload: {
+              Id: 'testId1',
+              Prop1: 'prop1',
+              Name: 'fred2'
+            }
+          })
+          expect(res).to.eql({
+            'giles': 'test',
+            loadOrder: '-Name',
+            'data': {
+              TotalCount: 13,
+              Values: [{
+                'Id': 'testId',
+                'Name': 'giles',
+                Prop: 'prop'
+              },
+                {
+                  'Id': 'testId1',
+                  'Prop1': 'prop1',
+                  'Name': 'fred2'
+                }]
+            }
+          })
+
+          it('reduced with type "ENTITIES_UPDATE_POST". posting existing', () => {
+            const state = {
+              giles: 'test',
+              loadOrder: 'Whatever',
+              data: {
+                Values: [{
+                  Id: 'testId',
+                  Name: 'giles',
+                  Prop: 'prop'
+                }]
+              }
+            }
+            const res = reducer(state, {
+              type: ENTITIES_UPDATE_POST,
+              payload: {
+                Id: 'testId',
+                Prop1: 'prop1',
+                Name: 'fred2'
+              }
+            })
+            expect(res).to.eql({
+              'giles': 'test',
+              loadOrder: 'Whatever',
+              'data': {
+                Values: [{
+                  'Id': 'testId',
+                  'Prop1': 'prop1',
+                  'Name': 'fred2'
+                }]
+              }
+            })
+          })
+        })
+      })
+      describe('type: ENTITIES_UPDATE_DELETE', () => {
+        let ENTITIES_UPDATE_DELETE
+
+        beforeEach(() => {
+          ENTITIES_UPDATE_DELETE = testModule.constants.ENTITIES_UPDATE_DELETE
+        })
+
+        it('reduced with type "ENTITIES_UPDATE_DELETE".', () => {
+          const state = {
+            giles: 'test',
+            data: {
+              TotalCount: 2,
+              Values: [
+                {
+                  Id: 'testId'
+                }, {
+                  Id: 'testId1'
+                }
+              ]
+            }
+          }
+          const res = reducer(state, { type: ENTITIES_UPDATE_DELETE, id: 'testId' })
+          expect(res).to.eql({
+            'giles': 'test',
+            'data': {
+              TotalCount: 1,
+              Values: [
+                {
+                  'Id': 'testId1'
+                }
+              ]
             }
           })
         })
       })
     })
-    describe('type: ENTITIES_UPDATE_DELETE', () => {
-      let ENTITIES_UPDATE_DELETE
+    describe('ENTITY_UPDATE', ()=> {
+      describe('type: ENTITY_UPDATE_PUT', () => {
 
-      beforeEach(() => {
-        ENTITIES_UPDATE_DELETE = testModule.constants.ENTITIES_UPDATE_DELETE
-      })
+        let ENTITY_UPDATE_PUT
 
-      it('reduced with type "ENTITIES_UPDATE_DELETE".', () => {
-        const state = {
-          giles: 'test',
-          data: {
-            TotalCount: 2,
-            Values: [
-              {
-                Id: 'testId'
-              }, {
-                Id: 'testId1'
-              }
-            ]
-          }
-        }
-        const res = reducer(state, { type: ENTITIES_UPDATE_DELETE, id: 'testId' })
-        expect(res).to.eql({
-          'giles': 'test',
-          'data': {
-            TotalCount: 1,
-            Values: [
-              {
-                'Id': 'testId1'
-              }
-            ]
-          }
+        beforeEach(() => {
+          ENTITY_UPDATE_PUT = testModule.constants.ENTITY_UPDATE_PUT
         })
-      })
-    })
 
-    describe('type: ENTITY_UPDATE_PUT', () => {
-
-      let ENTITY_UPDATE_PUT
-
-      beforeEach(() => {
-        ENTITY_UPDATE_PUT = testModule.constants.ENTITY_UPDATE_PUT
-      })
-
-      it('reduced with type "ENTITY_UPDATE_PUT".', () => {
-        const state = {
-          giles: 'test',
-          singleData: {
-            Id: 'testId',
-            Prop: 'prop',
-            Name: 'giles'
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITY_UPDATE_PUT,
-          payload: {
-            Id: 'testId',
-            Name: 'fred',
-            Prop1: 'prop1'
-          }
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          'singleData': {
-            'Id': 'testId',
-            'Name': 'fred',
-            Prop: 'prop',
-            Prop1: 'prop1'
-          }
-        })
-      })
-    })
-    describe('type: ENTITY_UPDATE_DELETE', () => {
-
-      let ENTITY_UPDATE_DELETE
-
-      beforeEach(() => {
-        ENTITY_UPDATE_DELETE = testModule.constants.ENTITY_UPDATE_DELETE
-      })
-
-      it('reduced with type "ENTITY_UPDATE_DELETE".', () => {
-        const state = {
-          giles: 'test',
-          singleData: {
-            Id: 'testId'
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITY_UPDATE_DELETE,
-          id: 'testId'
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          'singleData': null
-        })
-      })
-    })
-
-    describe('type: ENTITIES_DELETE_SUCCESS', () => {
-
-      let ENTITIES_DELETE_SUCCESS
-
-      beforeEach(() => {
-        ENTITIES_DELETE_SUCCESS = testModule.constants.ENTITIES_DELETE_SUCCESS
-      })
-
-      it('reduced with type "ENTITIES_DELETE_SUCCESS".', () => {
-        const state = {
-          giles: 'test',
-          saveProgress: {
-            testId: 'progress'
-          },
-          data: {
-            Values: [{
-              Id: 'testId'
-            }, {
-                Id: 'testId1'
-              }]
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_DELETE_SUCCESS,
-          id: 'testId'
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          saveProgress: {
-            testId: null
-          },
-          deleting: {
-            testId: false
-          },
-          'data': {
-            Values: [{
-              'Id': 'testId1'
-            }]
-          }
-        })
-      })
-    })
-
-    
-
-    describe('type: ENTITIES_DELETE', () => {
-
-      let ENTITIES_DELETE
-
-      beforeEach(() => {
-        ENTITIES_DELETE = testModule.constants.ENTITIES_DELETE
-      })
-
-      it('reduced with type "ENTITIES_DELETE".', () => {
-        const state = {
-          giles: 'test'
-        }
-        const res = reducer(state, {
-          type: ENTITIES_DELETE,
-          id: 'testId'
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          'deleting': {
-            'testId': true
-          }
-        })
-      })
-    })
-
-
-    describe('type: ENTITIES_ADD', () => {
-
-      let add, ENTITIES_ADD
-
-      beforeEach(() => {
-        ENTITIES_ADD = testModule.constants.ENTITIES_ADD
-        add = testModule.actions.add
-      })
-
-      it('add returns nodes add', () => {
-        expect(add('pid')).to.eql({
-          type: ENTITIES_ADD,
-          parentId: 'pid'
-        })
-      })
-      it('reduced with type "ENTITIES_ADD". ', () => {
-        const state = {
-          giles: 'test',
-          data: {
-            Values: [{
+        it('reduced with type "ENTITY_UPDATE_PUT".', () => {
+          const state = {
+            giles: 'test',
+            singleData: {
               Id: 'testId',
-              Name: 'giles',
-              Prop: 'prop'
-            }]
-          }
-        }
-        const res = reducer(state, {
-          type: ENTITIES_ADD,
-          parentId: 'pid'
-        })
-        expect(res).to.eql({
-          'giles': 'test',
-          editing: {
-            add: true
-          },
-          'data': {
-            Values: [{
-              Id: 'add',
-              ParentId: 'pid',
-              Name: '',
-              isNew: true
-            }, {
-                Id: 'testId',
-                Name: 'giles',
-                Prop: 'prop'
-              }]
-          }
-        })
-      })
-    })
-
-    describe('type: ENTITIES_ADD_SUCCESS', () => {
-
-      let ENTITIES_ADD_SUCCESS
-
-      beforeEach(() => {
-        ENTITIES_ADD_SUCCESS = testModule.constants.ENTITIES_ADD_SUCCESS
-      })
-
-      it('reduced with type "ENTITIES_ADD_SUCCESS". ', () => {
-        const state = {
-          giles: 'test',
-          data: {
-            Values: [{
-              Id: 'add',
-              Name: 'giles',
-              Prop: 'prop'
-            }, {
-                Id: 'testId',
-                Name: 'giles',
-                Prop: 'prop'
-              }]
-          }
-        }
-        const res = reducer(state, { type: ENTITIES_ADD_SUCCESS })
-        expect(res).to.eql({
-          'giles': 'test',
-          editing: {
-            add: false
-          },
-          saving: {
-            add: false
-          },
-          saveProgress: {
-            add: null
-          },
-          'data': {
-            Values: [{
-              Id: 'testId',
-              Name: 'giles',
-              Prop: 'prop'
+              Prop: 'prop',
+              Name: 'giles'
             }
-            ]
           }
+          const res = reducer(state, {
+            type: ENTITY_UPDATE_PUT,
+            payload: {
+              Id: 'testId',
+              Name: 'fred',
+              Prop1: 'prop1'
+            }
+          })
+          expect(res).to.eql({
+            'giles': 'test',
+            'singleData': {
+              'Id': 'testId',
+              'Name': 'fred',
+              Prop: 'prop',
+              Prop1: 'prop1'
+            }
+          })
+        })
+      })
+      describe('type: ENTITY_UPDATE_DELETE', () => {
+
+        let ENTITY_UPDATE_DELETE
+
+        beforeEach(() => {
+          ENTITY_UPDATE_DELETE = testModule.constants.ENTITY_UPDATE_DELETE
+        })
+
+        it('reduced with type "ENTITY_UPDATE_DELETE".', () => {
+          const state = {
+            giles: 'test',
+            singleData: {
+              Id: 'testId'
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITY_UPDATE_DELETE,
+            id: 'testId'
+          })
+          expect(res).to.eql({
+            'giles': 'test',
+            'singleData': null
+          })
+        })
+      })
+      describe('ENTITIES_DELETE', ()=> {
+        describe('type: ENTITIES_DELETE_SUCCESS', () => {
+
+          let ENTITIES_DELETE_SUCCESS
+
+          beforeEach(() => {
+            ENTITIES_DELETE_SUCCESS = testModule.constants.ENTITIES_DELETE_SUCCESS
+          })
+
+          it('reduced with type "ENTITIES_DELETE_SUCCESS".', () => {
+            const state = {
+              giles: 'test',
+              saveProgress: {
+                testId: 'progress'
+              },
+              data: {
+                Values: [{
+                  Id: 'testId'
+                }, {
+                    Id: 'testId1'
+                  }]
+              }
+            }
+            const res = reducer(state, {
+              type: ENTITIES_DELETE_SUCCESS,
+              id: 'testId'
+            })
+            expect(res).to.eql({
+              'giles': 'test',
+              saveProgress: {
+                testId: null
+              },
+              deleting: {
+                testId: false
+              },
+              'data': {
+                Values: [{
+                  'Id': 'testId1'
+                }]
+              }
+            })
+          })
+        })
+      })
+      
+
+      describe('type: ENTITIES_DELETE', () => {
+
+        let ENTITIES_DELETE
+
+        beforeEach(() => {
+          ENTITIES_DELETE = testModule.constants.ENTITIES_DELETE
+        })
+
+        it('reduced with type "ENTITIES_DELETE".', () => {
+          const state = {
+            giles: 'test'
+          }
+          const res = reducer(state, {
+            type: ENTITIES_DELETE,
+            id: 'testId'
+          })
+          expect(res).to.eql({
+            'giles': 'test',
+            'deleting': {
+              'testId': true
+            }
+          })
+        })
+      })
+    })
+    describe('ENTITIES_ADD', ()=> {
+      describe('type: ENTITIES_ADD', () => {
+
+        let add, ENTITIES_ADD
+
+        beforeEach(() => {
+          ENTITIES_ADD = testModule.constants.ENTITIES_ADD
+          add = testModule.actions.add
+        })
+
+        it('add returns nodes add default id', () => {
+          expect(add({parentId: 'pid'})).to.eql({
+            type: ENTITIES_ADD,
+            id: 'add',
+            parentId: 'pid'
+          })
+        })
+        it('add returns nodes add id', () => {
+          expect(add({parentId: 'pid', id: -1})).to.eql({
+            type: ENTITIES_ADD,
+            id: -1,
+            parentId: 'pid'
+          })
+        })
+        
+        it('reduced with type "ENTITIES_ADD". ', () => {
+          const state = {
+            giles: 'test',
+            data: {
+              Values: [{
+                Id: 'testId',
+                Name: 'giles',
+                Prop: 'prop'
+              }]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_ADD,
+            parentId: 'pid',
+            id: 'add'
+          })
+          expect(res).to.eql({
+            'giles': 'test',
+            editing: {
+              add: true
+            },
+            'data': {
+              Values: [{
+                Id: 'add',
+                ParentId: 'pid',
+                Name: '',
+                isNew: true
+              }, {
+                  Id: 'testId',
+                  Name: 'giles',
+                  Prop: 'prop'
+                }]
+            }
+          })
+        })
+      })
+
+      describe('type: ENTITIES_ADD_SUCCESS', () => {
+
+        let ENTITIES_ADD_SUCCESS
+
+        beforeEach(() => {
+          ENTITIES_ADD_SUCCESS = testModule.constants.ENTITIES_ADD_SUCCESS
+        })
+
+        it('reduced with type "ENTITIES_ADD_SUCCESS". ', () => {
+          const state = {
+            giles: 'test',
+            data: {
+              Values: [{
+                Id: 'add',
+                Name: 'giles',
+                Prop: 'prop'
+              }, {
+                  Id: 'testId',
+                  Name: 'giles',
+                  Prop: 'prop'
+                }]
+            }
+          }
+          const res = reducer(state, { type: ENTITIES_ADD_SUCCESS, id: 'add' })
+          
+          expect(res).to.eql({
+            'giles': 'test',
+            editing: {
+              add: false
+            },
+            saving: {
+              add: false
+            },
+            saveProgress: {
+              add: null
+            },
+            'data': {
+              Values: [{
+                Id: 'testId',
+                Name: 'giles',
+                Prop: 'prop'
+              }
+              ]
+            }
+          })
         })
       })
     })
   })
-
   describe('(Async Action Creators) Nodes', () => {
     let _globalState
     let _dispatchSpy
@@ -2189,7 +2518,6 @@ describe('(Action Creator) save', () => {
     expect(apiClient.post.getCall(0).args[0]).to.equal('post path')
     expect(apiClient.post.getCall(0).args[1]).to.eql({ data: 'post converted' })
     expect(apiClient.post.getCall(0).args[2]).to.eql('files')
-
     expect(yield iter.nextValue()).to.eql({
       type: testModule.constants.ENTITIES_SAVE,
       values: {
@@ -2197,6 +2525,8 @@ describe('(Action Creator) save', () => {
         isNew: true
         }
       })
+    
+    
     expect(yield iter.nextValue())
       .to.eql({
        type: testModule.constants.ENTITIES_SAVE_PROGRESS,
@@ -2207,7 +2537,8 @@ describe('(Action Creator) save', () => {
       })
     
     expect(yield iter.nextValue()).to.eql({
-      type: testModule.constants.ENTITIES_ADD_SUCCESS
+      type: testModule.constants.ENTITIES_ADD_SUCCESS,
+      id: 'testId'
     })
 
     yield iter.shouldComplete()
@@ -2218,6 +2549,162 @@ describe('(Action Creator) save', () => {
     // expect(yield iter.nextValue()).to.equal(45)  
   })
 })
+
+
+describe('(Action Creator) upload', () => {
+  let upload
+  beforeEach(() => {
+    upload = testModule.actions.upload
+  })
+
+  it('Should be exported as a function.', () => {
+    expect(upload).to.be.a('function')
+  })
+  it('Should return a function.', () => {
+    expect(upload({})).to.be.a('function')
+  })
+  
+  it('Should return an observable that operates when put.', function* () {
+
+    const apiClient = {
+      put: sinon.spy(() => Rx.Observable.from([
+        { progress: 'progress' },
+        { result: 'giles' }
+      ]))
+    }
+    getUploadPutPath.returns('test put path')
+    const iter = upload({
+      uploadType: 'uploadType',
+      values: {
+        Id: 'testId'
+      },
+      files: 'files'
+
+    })({ apiClient })(undefined, {
+      dispatch: _dispatchSpy,
+      getState: _getStateSpy
+    }).toAsyncIterator()
+    expect(getUploadPutPath.getCall(0).args[0]).to.eql({ Id: 'testId' })
+    expect(getUploadPutPath.getCall(0).args[1]).to.eql('uploadType')
+    expect(apiClient.put.getCall(0).args[0]).to.equal('test put path')
+    expect(apiClient.put.getCall(0).args[1]).to.eql({ data: { Id: 'testId' } })
+    expect(apiClient.put.getCall(0).args[2]).to.equal('files')
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPLOAD,
+      payload: {
+        uploadType: 'uploadType',
+        values: {
+          Id: 'testId'
+        },
+        files: 'files'
+      }
+    })
+    expect(yield iter.nextValue())
+      .to.eql({
+        type: testModule.constants.ENTITIES_UPLOAD_PROGRESS,
+        payload: {
+          values: {
+            Id: 'testId'
+          },
+          uploadType: 'uploadType',
+          progress: 'progress'
+        }
+      })
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPLOAD_SUCCESS,
+      payload: {
+        uploadType: 'uploadType',
+        values: {
+          Id: 'testId'
+        }
+      }
+    })
+
+    yield iter.shouldComplete()
+
+    iter.unsubscribe()
+  })
+  it('Should return an observable that operates when post.', function* () {
+    const apiClient = {
+      post: sinon.spy(() => Rx.Observable.from([
+        { progress: 'progress' },
+        { result: 'giles' }
+      ]))
+    }
+    postConvert.returns('post converted')
+    getUploadPostPath.returns('post path')
+    const iter = upload({
+      uploadType: 'uploadType',
+      values: {
+        Id: 'testId',
+        isNew: true
+      },
+      files: 'files'
+    })({ apiClient })(undefined, {
+      dispatch: _dispatchSpy,
+      getState: _getStateSpy
+    }).toAsyncIterator()
+
+    expect(postConvert.getCall(0).args[0]).to.eql({
+      Id: 0,
+      isNew: true
+    })
+    expect(getUploadPostPath.getCall(0).args[0]).to.eql({
+      Id: 'testId',
+      isNew: true
+    })
+    expect(getUploadPostPath.getCall(0).args[1]).to.eql('uploadType')
+
+    expect(apiClient.post.getCall(0).args[0]).to.equal('post path')
+    expect(apiClient.post.getCall(0).args[1]).to.eql({ data: 'post converted' })
+    expect(apiClient.post.getCall(0).args[2]).to.eql('files')
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPLOAD,
+      payload: {
+        uploadType: 'uploadType',
+        values: {
+          Id: 'testId',
+          isNew: true
+        },
+        files: 'files'
+      }
+    })
+    expect(yield iter.nextValue())
+      .to.eql({
+        type: testModule.constants.ENTITIES_UPLOAD_PROGRESS,
+        payload: {
+          values: {
+            Id: 'testId',
+            isNew: true
+          },
+          uploadType: 'uploadType',
+          progress: 'progress'
+        }
+      })
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPLOAD_SUCCESS,
+      payload: {
+        uploadType: 'uploadType',
+        values: {
+          Id: 'testId',
+          isNew: true
+        }
+      }
+    })
+
+    yield iter.shouldComplete()
+
+    iter.unsubscribe()
+
+    // Will throw if error or complete are produced.
+    // expect(yield iter.nextValue()).to.equal(45)  
+  })
+})
+
+
+
+
+
 
 describe('(Action Creator) saveErrorCancel', () => {
 

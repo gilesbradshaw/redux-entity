@@ -13,7 +13,9 @@ const getModule = ({
   getLoadSingleHasChanged = ()=>true, 
   getSinglePath, 
   getPostPath,
+  getUploadPostPath,
   getPutPath,
+  getUploadPutPath,
   getDeletePath,
   postConvert,
   signalRRetry=10000
@@ -53,6 +55,14 @@ const getModule = ({
   const ENTITIES_SAVE_SUCCESS = 'react-dealerweb/ENTITIES_SAVE_SUCCESS:' + name
   const ENTITIES_SAVE_FAIL = 'react-dealerweb/ENTITIES_SAVE_FAIL:' + name
   const ENTITIES_SAVE_FAIL_CANCEL = 'react-dealerweb/ENTITIES_SAVE_FAIL_CANCEL:' + name
+
+
+  const ENTITIES_UPLOAD = 'react-dealerweb/ENTITIES_UPLOAD:' + name
+  const ENTITIES_UPLOAD_PROGRESS = 'react-dealerweb/ENTITIES_UPLOAD_PROGRESS:' + name
+  const ENTITIES_UPLOAD_SUCCESS = 'react-dealerweb/ENTITIES_UPLOAD_SUCCESS:' + name
+  const ENTITIES_UPLOAD_FAIL = 'react-dealerweb/ENTITIES_UPLOAD_FAIL:' + name
+  const ENTITIES_UPLOAD_FAIL_CANCEL = 'react-dealerweb/ENTITIES_UPLOAD_FAIL_CANCEL:' + name
+
 
   const ENTITIES_ADD = 'react-dealerweb/ENTITIES_ADD:' + name
   const ENTITIES_ADD_SUCCESS = 'react-dealerweb/ENTITIES_ADD_SUCCESS:' + name
@@ -234,9 +244,10 @@ const getModule = ({
     }
   const singleLoadErrorCancel = () => ({ type: ENTITY_LOAD_FAIL_CANCEL})
 
-  const add = (parentId) => ({ 
+  const add = ({parentId, id= 'add'}) => ({ 
     type: ENTITIES_ADD, 
-    parentId: parentId
+    parentId: parentId,
+    id
   })
   function editStart(id) {
     return { type: ENTITIES_EDIT_START, id }
@@ -291,7 +302,8 @@ const getModule = ({
         .flatMap(result=>Rx.Observable.of(
           result.result
           ? {
-            type: ENTITIES_ADD_SUCCESS
+            type: ENTITIES_ADD_SUCCESS,
+            id: values.Id
           }
           : {
             type: ENTITIES_SAVE_PROGRESS, 
@@ -303,11 +315,104 @@ const getModule = ({
         ))
         .catch(error => Rx.Observable.of({
           type: ENTITIES_SAVE_FAIL, 
-          id: values.Id, error: error
+          id: values.Id, 
+          error: error
         }))
         .startWith({type: ENTITIES_SAVE, values})
     }
   }
+
+
+const upload = ({
+    uploadType='default',
+    values, 
+    files
+  })=> ({apiClient}) => {
+    if(!values.isNew) {
+       const putPath = getUploadPutPath(values, uploadType)
+      return (actions, {getState}) =>
+        apiClient.put(putPath, {
+            data: values
+          }, files)
+        .flatMap(result=>Rx.Observable.of(
+          result.result
+          ? {
+            type: ENTITIES_UPLOAD_SUCCESS,
+            payload: {
+              uploadType,
+              values
+            } 
+          }
+          : {
+            type: ENTITIES_UPLOAD_PROGRESS, 
+            payload: {
+              values,
+              uploadType, 
+              progress: result.progress
+            }
+          }
+        ))
+        .catch(error => Rx.Observable.of({
+          type: ENTITIES_UPLOAD_FAIL,
+          payload: {
+            values,
+            uploadType,
+            error
+          } 
+        }))  
+        .startWith({
+          type: ENTITIES_UPLOAD, 
+          payload: {
+            uploadType,
+            values,
+            files
+          } 
+        })
+    } else {
+      const postPath = getUploadPostPath(values, uploadType)
+      return (actions, {getState}) =>
+        apiClient.post(postPath , {
+            data: postConvert({...values, Id: 0})
+          }, files)
+        .flatMap(result=>Rx.Observable.of(
+          result.result
+          ? {
+            type: ENTITIES_UPLOAD_SUCCESS,
+            payload: {
+              uploadType,
+              values
+            } 
+          }
+          : {
+            type: ENTITIES_UPLOAD_PROGRESS, 
+            payload: {
+              uploadType,
+              values, 
+              progress: result.progress
+            }
+          }
+        ))
+        .catch(error => Rx.Observable.of({
+          type: ENTITIES_UPLOAD_FAIL, 
+          payload: {
+            uploadType,
+            values, 
+            error,
+          }
+        }))
+        .startWith({
+          type: ENTITIES_UPLOAD, 
+          payload: {
+            uploadType,
+            values, 
+            files
+          }  
+      })
+    }
+  }
+
+
+
   const remove = (id) => ({apiClient}) => {
     const deletePath = getDeletePath(id)
     return (actions, {getState}) =>
@@ -626,12 +731,12 @@ const getModule = ({
         ...state, 
         editing: {
           ...state.editing, 
-          add: true
+          [action.id]: true
         }, 
         data: {
           ...state.data, 
           Values: [{
-            Id: 'add', 
+            Id: action.id, 
             ParentId: action.parentId, 
             isNew: true, 
             Name: ''
@@ -647,14 +752,14 @@ const getModule = ({
         Values: state.data.Values.filter(group => group.Id !== 'add')}, 
         saving: {
           ...state.saving, 
-          add: false
+          [action.id]: false
         },
         saveProgress: {
-          add: null
+          [action.id]: null
         },
         editing: {
           ...state.editing, 
-          add: false
+          [action.id]: false
         }
       }),
     [ENTITIES_DELETE]: (state, action) => ({
@@ -663,8 +768,69 @@ const getModule = ({
         ...state.deleting, 
         [action.id]: true
       }
+    }),
+    [ENTITIES_UPLOAD]: (state, action) => ({
+      ...state,
+      ...nullIfNone(state, action.payload.values.Id, 'uploadError', action.payload.uploadType),
+      uploading: {
+        ...state.uploading,
+        [action.payload.values.Id]: {
+          ...(state.uploading && state.uploading[action.payload.values.Id]),
+          [action.payload.uploadType]: {
+            values: action.payload.values,
+            files: action.payload.files
+          }
+        }
+      }
+    }),
+    [ENTITIES_UPLOAD_PROGRESS]: (state, action) => ({
+      ...state,
+      uploadProgress: {
+        ...state.uploadProgress,
+        [action.payload.values.Id]: {
+          ...(state.uploadProgress && state.uploadProgress[action.payload.values.Id]),
+          [action.payload.uploadType]: action.payload.progress
+        }
+      }
+    }),
+    [ENTITIES_UPLOAD_SUCCESS]: (state, action) => ({
+      ...state,
+      ...nullIfNone(state, action.payload.values.Id, 'uploading', action.payload.uploadType),
+      ...nullIfNone(state, action.payload.values.Id, 'uploadProgress', action.payload.uploadType)
+    }),
+    [ENTITIES_UPLOAD_FAIL]: (state, action) => ({
+      ...state,
+      ...nullIfNone(state, action.payload.values.Id, 'uploading', action.payload.uploadType),
+      ...nullIfNone(state, action.payload.values.Id, 'uploadProgress', action.payload.uploadType),
+      uploadError: {
+        ...state.uploadError,
+        [action.payload.values.Id]: {
+          ...(state.uploadError && state.uploadError[action.payload.values.Id]),
+          [action.payload.uploadType]: action.payload.error
+        }
+      }
+    }),
+    [ENTITIES_UPLOAD_FAIL_CANCEL]: (state, action) => ({
+      ...state,
+      ...nullIfNone(state, action.payload.id, 'uploadError', action.payload.uploadType)
     })
+
   }
+
+  const nullIfNone = (state, id, fieldName, subFieldName) => ({
+    [fieldName]: {
+      ...state[fieldName],
+      ...{[id]: null},
+      ...(state[fieldName] 
+        && state[fieldName][id] 
+        && (Object.keys(state[fieldName][id]).length > 1
+          || !state[fieldName][id][subFieldName])
+        && {[id]: {
+        ...(state[fieldName] && state[fieldName][id]),
+        [subFieldName]: null
+      }})
+    }
+  })
 
   // ------------------------------------
   // Reducer
@@ -712,6 +878,13 @@ const getModule = ({
       ENTITIES_SAVE_FAIL,
       ENTITIES_SAVE_FAIL_CANCEL,
 
+      ENTITIES_UPLOAD,
+      ENTITIES_UPLOAD_PROGRESS,
+      ENTITIES_UPLOAD_SUCCESS,
+      ENTITIES_UPLOAD_FAIL,
+      ENTITIES_UPLOAD_FAIL_CANCEL,
+
+
       ENTITIES_ADD,
       ENTITIES_ADD_SUCCESS,
 
@@ -729,7 +902,8 @@ const getModule = ({
       editStop,
       save,
       saveErrorCancel,
-      remove
+      remove,
+      upload
     },
     reducer
   }
