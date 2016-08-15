@@ -2703,6 +2703,27 @@ describe('(Action Creator) upload', () => {
 
 
 
+describe('(Action Creator) uploadErrorCancel', () => {
+
+  let uploadErrorCancel, ENTITIES_UPLOAD_FAIL_CANCEL
+
+  beforeEach(() => {
+    uploadErrorCancel = testModule.actions.uploadErrorCancel
+    ENTITIES_UPLOAD_FAIL_CANCEL = testModule.constants.ENTITIES_UPLOAD_FAIL_CANCEL
+  })
+
+  it('Should be exported as a function.', () => {
+    expect(uploadErrorCancel).to.be.a('function')
+  })
+
+  it('Should return correct action.', () => {
+    expect(uploadErrorCancel('testid', 'uploadType')).to.be.eql({
+      type: ENTITIES_UPLOAD_FAIL_CANCEL,
+      id: 'testid',
+      uploadType: 'uploadType'
+    })
+  })
+})
 
 
 

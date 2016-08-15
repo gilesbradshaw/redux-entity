@@ -241,7 +241,7 @@ const getModule = ({
       } else {
         return Rx.Observable.empty()
       }
-    }
+    } 
   const singleLoadErrorCancel = () => ({ type: ENTITY_LOAD_FAIL_CANCEL})
 
   const add = ({parentId, id= 'add'}) => ({ 
@@ -259,6 +259,11 @@ const getModule = ({
   const saveErrorCancel = (id) => ({ 
     type: ENTITIES_SAVE_FAIL_CANCEL, 
     id 
+  })
+  const uploadErrorCancel = (id, uploadType) => ({ 
+    type: ENTITIES_UPLOAD_FAIL_CANCEL, 
+    id,
+    uploadType 
   })
   
   const save = ({
@@ -902,6 +907,7 @@ const upload = ({
       editStop,
       save,
       saveErrorCancel,
+      uploadErrorCancel,
       remove,
       upload
     },
