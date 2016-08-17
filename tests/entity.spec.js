@@ -686,11 +686,6 @@ describe('(Redux Module) Nodes', () => {
         it('Should be reduced with type ENTITIES_UPLOAD.', () => {
           const res = reducer({
             giles: 'test',
-            uploadError: {
-              testMe: {
-                uploadExistingErrorTest: 'existingError'
-              }
-            },
             uploading: {
               giles: true,
               testMe: {
@@ -709,59 +704,21 @@ describe('(Redux Module) Nodes', () => {
             })
           const expected = {
             giles: 'test',
-            uploadError: {
-              testMe: {
-                uploadExistingErrorTest: 'existingError',
-                uploadType: null
-              },
-            },
             uploading: {
               testMe: {
                 uploadExistingTest: 'test',
                 uploadType: {
+                  uploadType: 'uploadType',
                   values: {
-                      Id: 'testMe'
-                    },
+                    Id: 'testMe'
+                  },
                   files: 'files'
                 }
               },
               giles: true
             }
-          }
-          expect(res).to.eql(expected)
-        })
-        it('Should be reduced with type ENTITIES_UPLOAD. error nulled when no more', () => {
-          const res = reducer({
-            uploadError: {
-              testMe: {
-                uploadType: 'existingError'
-              }
-            }
-          }, {
-              type: ENTITIES_UPLOAD,
-              payload: {
-                uploadType: 'uploadType',
-                values: {
-                  Id: 'testMe'
-                },
-                files: 'files'
-              }
-            })
-          const expected = {
-            uploadError: {
-              testMe: null,
-            },
-            uploading: {
-              testMe: {
-                uploadType: {
-                  values: {
-                      Id: 'testMe'
-                    },
-                  files: 'files'
-                }
-              }
-            }
-          }
+          }          
+          
           expect(res).to.eql(expected)
         })
       })
@@ -782,13 +739,6 @@ describe('(Redux Module) Nodes', () => {
                 otherUploadType: true
               },
               giles: true
-            },
-            uploadProgress: {
-              testMe: {
-                uploadType: true,
-                otherUploadType: true
-              },
-              giles: 'progress'
             }
           }, {
               type: ENTITIES_UPLOAD_SUCCESS,
@@ -807,18 +757,40 @@ describe('(Redux Module) Nodes', () => {
                 otherUploadType: true
               },
               giles: true
-            },
-            uploadProgress: {
+            }
+          }
+          expect(res).to.eql(expected)
+        })
+        it('Should be reduced with type ENTITIES_UPLOAD_SUCCESS nulled if no more.', () => {
+          const res = reducer({
+            giles: 'test',
+            uploading: {
               testMe: {
-                uploadType: null,
-                otherUploadType: true
+                uploadType: true
               },
-              giles: 'progress'
+              giles: true
+            }
+          }, {
+              type: ENTITIES_UPLOAD_SUCCESS,
+              payload: {
+                uploadType: 'uploadType',
+                values: {
+                  Id: 'testMe'
+                }
+              }
+            })
+          const expected = {
+            giles: 'test',
+            uploading: {
+              testMe: null,
+              giles: true
             }
           }
           expect(res).to.eql(expected)
         })
       })
+        
+      
       describe('type: ENTITIES_UPLOAD_PROGRESS', () => {
 
         let ENTITIES_UPLOAD_PROGRESS
@@ -830,7 +802,7 @@ describe('(Redux Module) Nodes', () => {
         it('Should be reduced with type ENTITIES_UPLOAD_PROGRESS.', () => {
           const res = reducer({
             giles: 'test',
-            uploadProgress: {
+            uploading: {
               testMe: 'testme',
               giles: {
                 existingType: 'test'
@@ -849,11 +821,17 @@ describe('(Redux Module) Nodes', () => {
             })
           const expected ={
             giles: 'test',
-            uploadProgress: {
+            uploading: {
               testMe: 'testme',
               giles: {
                 existingType: 'test',
-                uploadType: 'progress'
+                uploadType: {
+                  values: {
+                    Id: 'giles'
+                  },
+                  uploadType: 'uploadType',
+                  progress: 'progress'
+                }
               }
             }
           }
@@ -877,17 +855,6 @@ describe('(Redux Module) Nodes', () => {
                 uploadType: true,
                 otherUploadType: true
               }
-            },
-            uploadProgress: {
-              testMe: {
-                uploadType: true,
-                otherUploadType: true
-              }
-            },
-            uploadError: {
-              testMe: {
-                otherUploadType: true
-              }
             }
           }, {
               type: ENTITIES_UPLOAD_FAIL,
@@ -903,20 +870,14 @@ describe('(Redux Module) Nodes', () => {
             giles: 'test',
             uploading: {
               testMe: {
-                uploadType: null,
+                uploadType: {
+                  values: {
+                    Id: 'testMe'
+                  },
+                  uploadType: 'uploadType',
+                  error: 'damn2'
+                },
                 otherUploadType: true
-              }
-            },
-            uploadProgress: {
-              testMe: {
-                uploadType: null,
-                otherUploadType: true
-              }
-            },
-            uploadError: {
-              testMe: {
-                otherUploadType: true,
-                uploadType: 'damn2'
               }
             }
           }
@@ -934,7 +895,7 @@ describe('(Redux Module) Nodes', () => {
         it('Should be reduced with type ENTITIES_UPLOAD_FAIL_CANCEL.', () => {
           const res = reducer({
             giles: 'test',
-            uploadError: {
+            uploading: {
               giles: 'damn',
               [99]: {
                 testError: true,
@@ -951,12 +912,37 @@ describe('(Redux Module) Nodes', () => {
             })
           expect(res).to.eql({
             giles: 'test',
-            uploadError: {
+            uploading: {
               giles: 'damn',
               [99]: {
                 testError: null,
                 testError2: true
               }
+            }
+          })
+        })
+        it('Should be reduced with type ENTITIES_UPLOAD_FAIL_CANCEL. nulled if no more', () => {
+          const res = reducer({
+            giles: 'test',
+            uploading: {
+              giles: 'damn',
+              [99]: {
+                testError: true
+              }
+            }
+          }, {
+              type: ENTITIES_UPLOAD_FAIL_CANCEL,
+              payload: {
+                id: 99,
+                uploadType: 'testError'
+              }
+              
+            })
+          expect(res).to.eql({
+            giles: 'test',
+            uploading: {
+              giles: 'damn',
+              [99]: null
             }
           })
         })
@@ -2607,6 +2593,7 @@ describe('(Action Creator) upload', () => {
             Id: 'testId'
           },
           uploadType: 'uploadType',
+          files: 'files',
           progress: 'progress'
         }
       })
@@ -2678,7 +2665,8 @@ describe('(Action Creator) upload', () => {
             isNew: true
           },
           uploadType: 'uploadType',
-          progress: 'progress'
+          progress: 'progress',
+          files: 'files'
         }
       })
     expect(yield iter.nextValue()).to.eql({
@@ -2688,7 +2676,8 @@ describe('(Action Creator) upload', () => {
         values: {
           Id: 'testId',
           isNew: true
-        }
+        },
+        files: 'files'
       }
     })
 
@@ -2719,8 +2708,10 @@ describe('(Action Creator) uploadErrorCancel', () => {
   it('Should return correct action.', () => {
     expect(uploadErrorCancel('testid', 'uploadType')).to.be.eql({
       type: ENTITIES_UPLOAD_FAIL_CANCEL,
-      id: 'testid',
-      uploadType: 'uploadType'
+      payload: {
+        id: 'testid',
+        uploadType: 'uploadType'
+      }
     })
   })
 })

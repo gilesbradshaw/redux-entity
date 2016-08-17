@@ -262,8 +262,10 @@ const getModule = ({
   })
   const uploadErrorCancel = (id, uploadType) => ({ 
     type: ENTITIES_UPLOAD_FAIL_CANCEL, 
-    id,
-    uploadType 
+    payload: {
+      id,
+      uploadType
+    } 
   })
   
   const save = ({
@@ -334,7 +336,7 @@ const upload = ({
     files
   })=> ({apiClient}) => {
     if(!values.isNew) {
-       const putPath = getUploadPutPath(values, uploadType)
+      const putPath = getUploadPutPath(values, uploadType)
       return (actions, {getState}) =>
         apiClient.put(putPath, {
             data: values
@@ -353,6 +355,7 @@ const upload = ({
             payload: {
               values,
               uploadType, 
+              files,
               progress: result.progress
             }
           }
@@ -362,7 +365,8 @@ const upload = ({
           payload: {
             values,
             uploadType,
-            error
+            error,
+            files
           } 
         }))  
         .startWith({
@@ -385,7 +389,8 @@ const upload = ({
             type: ENTITIES_UPLOAD_SUCCESS,
             payload: {
               uploadType,
-              values
+              values,
+              files
             } 
           }
           : {
@@ -393,7 +398,8 @@ const upload = ({
             payload: {
               uploadType,
               values, 
-              progress: result.progress
+              progress: result.progress,
+              files
             }
           }
         ))
@@ -403,6 +409,7 @@ const upload = ({
             uploadType,
             values, 
             error,
+            files
           }
         }))
         .startWith({
@@ -776,48 +783,41 @@ const upload = ({
     }),
     [ENTITIES_UPLOAD]: (state, action) => ({
       ...state,
-      ...nullIfNone(state, action.payload.values.Id, 'uploadError', action.payload.uploadType),
       uploading: {
         ...state.uploading,
         [action.payload.values.Id]: {
           ...(state.uploading && state.uploading[action.payload.values.Id]),
-          [action.payload.uploadType]: {
-            values: action.payload.values,
-            files: action.payload.files
-          }
+          [action.payload.uploadType]: action.payload
         }
       }
     }),
     [ENTITIES_UPLOAD_PROGRESS]: (state, action) => ({
       ...state,
-      uploadProgress: {
-        ...state.uploadProgress,
+      uploading: {
+        ...state.uploading,
         [action.payload.values.Id]: {
-          ...(state.uploadProgress && state.uploadProgress[action.payload.values.Id]),
-          [action.payload.uploadType]: action.payload.progress
+          ...(state.uploading && state.uploading[action.payload.values.Id]),
+          [action.payload.uploadType]: action.payload
         }
       }
     }),
     [ENTITIES_UPLOAD_SUCCESS]: (state, action) => ({
       ...state,
-      ...nullIfNone(state, action.payload.values.Id, 'uploading', action.payload.uploadType),
-      ...nullIfNone(state, action.payload.values.Id, 'uploadProgress', action.payload.uploadType)
+      ...nullIfNone(state, action.payload.values.Id, 'uploading', action.payload.uploadType)
     }),
     [ENTITIES_UPLOAD_FAIL]: (state, action) => ({
       ...state,
-      ...nullIfNone(state, action.payload.values.Id, 'uploading', action.payload.uploadType),
-      ...nullIfNone(state, action.payload.values.Id, 'uploadProgress', action.payload.uploadType),
-      uploadError: {
-        ...state.uploadError,
+      uploading: {
+        ...state.uploading,
         [action.payload.values.Id]: {
-          ...(state.uploadError && state.uploadError[action.payload.values.Id]),
-          [action.payload.uploadType]: action.payload.error
+          ...(state.uploading && state.uploading[action.payload.values.Id]),
+          [action.payload.uploadType]: action.payload
         }
       }
     }),
     [ENTITIES_UPLOAD_FAIL_CANCEL]: (state, action) => ({
       ...state,
-      ...nullIfNone(state, action.payload.id, 'uploadError', action.payload.uploadType)
+      ...nullIfNone(state, action.payload.id, 'uploading', action.payload.uploadType)
     })
 
   }
