@@ -458,7 +458,7 @@ const upload = ({
       const deleted = state.loadDeleted 
       const ret = values
         .map(value=>value)
-        .filter(value => value.IsDeleted === deleted)
+        .filter(value => (value.IsDeleted && deleted) || (!value.IsDeleted && !deleted)) 
         .sort((a,b) =>{
           const aa = a[field] && a[field].toLowerCase ? a[field].toLowerCase() : a[field]
           const bb = b[field] && b[field].toLowerCase ? b[field].toLowerCase() : b[field]
