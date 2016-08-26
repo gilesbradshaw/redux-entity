@@ -6,7 +6,10 @@ import * as Rx from 'rxjs'
 const getModule = ({
   name, 
   getJoinId, 
-  getJoinSingleId, 
+  getJoinSingleId,
+  getJoinFilter = ({parentId})=>(value)=>{ 
+    return !parentId || value.ParentId==parentId
+  },  
   getLoadPath, 
   getLoadDefaults,
   getLoadHasChanged = ()=>true, 
@@ -72,44 +75,53 @@ const getModule = ({
   
 
 
-  const join = (joinConfig = {}) => ({signalR, apiClient}) =>
-    Rx.Observable.of(1).switchMap(x=> 
+  const join = (joinConfig = {}) => ({signalR, apiClient}) => {
+    return Rx.Observable.of(1).switchMap(x=> 
       signalR()
         .switchMap(subscriber => 
           Rx.Observable.of(1).switchMap(x=> 
             subscriber.join(getJoinId(joinConfig)).switchMap(messages => 
-              Rx.Observable.of(messages.map(message => {
-                if (message.message && message.message.method === 'put') {
-                  return {type: ENTITIES_UPDATE_PUT, payload: message.message.value}
-                }
-                if (message.message && message.message.method === 'post') {
-                  return {type: ENTITIES_UPDATE_POST, payload: message.message.value}
-                }
-                if (message.message && message.message.method === 'delete') {
-                  return {type: ENTITIES_UPDATE_DELETE, id: message.message.id}
-                }
-                return {}
-              }))
+              Rx.Observable.of(
+                messages
+                  .filter(message=> getJoinFilter(joinConfig)(message.message.value))
+                  .map(message => {
+                    if (message.message && message.message.method === 'put') {
+                      return {type: ENTITIES_UPDATE_PUT, payload: message.message.value}
+                    }
+                    if (message.message && message.message.method === 'post') {
+                      return {type: ENTITIES_UPDATE_POST, payload: message.message.value}
+                    }
+                    if (message.message && message.message.method === 'delete') {
+                      return {type: ENTITIES_UPDATE_DELETE, id: message.message.value.Id}
+                    }
+                  }
+                )
+              )
             )
           ).retryWhen(errors=>errors.delay(signalRRetry))
       )
     ).retryWhen(errors=>errors.delay(signalRRetry))
-
+  }
   const joinSingle = (id) => ({signalR, apiClient}) => 
     Rx.Observable.of(1).switchMap(x=>
       signalR()
-        .flatMap(subscriber => 
+        .switchMap(subscriber => 
           Rx.Observable.of(1).flatMap(x=>
             subscriber.join(getJoinSingleId(id)).flatMap(messages=>
-              Rx.Observable.of(messages.map(message=>{
-                if(message.message && message.message.method==='put'){
-                  return {type: ENTITY_UPDATE_PUT, payload: message.message.value}
-                }
-                if(message.message && message.message.method==='delete'){
-                  return {type: ENTITY_UPDATE_DELETE, id: message.message.id}
-                }
-                return {}
-              }))
+              Rx.Observable.of(
+                messages
+                  .filter(message=>message.message.value.Id==id)
+                  .map(message=>{
+                    if(message.message && message.message.method==='put'){
+                      return {type: ENTITY_UPDATE_PUT, payload: message.message.value}
+                    }
+                    if(message.message && message.message.method==='delete'){
+                      return {type: ENTITY_UPDATE_DELETE, id: message.message.value.Id}
+                    }
+                    return {}
+                  }
+                )
+              )
             )
           ).retryWhen(errors=>errors.delay(signalRRetry))
       )  

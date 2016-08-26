@@ -1931,7 +1931,9 @@ describe('(Action Creator) load', () => {
         joinMessages.next({
           message: {
             method: 'delete',
-            id: 'deleteValue'
+            value: {
+              Id: 'deleteValue'
+            }
           }
         })
 
@@ -1943,6 +1945,7 @@ describe('(Action Creator) load', () => {
           type: ENTITIES_UPDATE_POST,
           payload: 'postValue'
         })
+
         expect(yield iter.nextValue()).to.eql({
           type: ENTITIES_UPDATE_DELETE,
           id: 'deleteValue'
@@ -1958,7 +1961,7 @@ describe('(Action Creator) load', () => {
           join: () => Rx.Observable.of(Rx.Observable.of(
             { message: { method: 'post', value: 'postValue' } },
             { message: { method: 'put', value: 'putValue' } },
-            { message: { method: 'delete', id: 'deleteValue' } }
+            { message: { method: 'delete', value: {Id: 'deleteValue'} } }
           ))
         })
 
@@ -2238,24 +2241,30 @@ describe('(Action Creator) loadSingle', () => {
       joinMessages.next({
         message: {
           method: 'put',
-          value: 'putValue'
+          value: {
+            Id:'id',
+            else: 'putValue'
+          }
         }
       })
       joinMessages.next({
         message: {
           method: 'delete',
-          id: 'deleteValue'
+          value: {
+            Id: 'id'
+          }
         }
       })
-
       expect(yield iter.nextValue()).to.eql({
         'type': testModule.constants.ENTITY_UPDATE_PUT,
-        'payload': 'putValue'
+        'payload': {
+            Id:'id',
+            else: 'putValue'
+          }
       })
-
       expect(yield iter.nextValue()).to.eql({
         'type': testModule.constants.ENTITY_UPDATE_DELETE,
-        'id': 'deleteValue'
+        'id': 'id'
       })
 
       iter.unsubscribe()
@@ -2331,8 +2340,23 @@ describe('(Action Creator) loadSingle', () => {
     it('Should play all notifications since api called.', function* () {
       const signalR = () => Rx.Observable.of({
         join: () => Rx.Observable.of(Rx.Observable.of(
-          { message: { method: 'put', value: 'putValue' } },
-          { message: { method: 'delete', id: 'deleteValue' } }
+          { 
+            message: { 
+              method: 'put', 
+              value: {
+                Id: 'testId', 
+                else: 'putValue' 
+              }
+            } 
+          },
+          { 
+            message: { 
+              method: 'delete', 
+              value: {
+                Id: 'testId' 
+              } 
+            }
+          }
         )),
 
       })
@@ -2353,8 +2377,15 @@ describe('(Action Creator) loadSingle', () => {
       yield iter.nextValue()
       yield iter.nextValue()
 
-      expect(yield iter.nextValue()).to.eql({ 'type': testModule.constants.ENTITY_UPDATE_PUT, 'payload': 'putValue' })
-      expect(yield iter.nextValue()).to.eql({ 'type': testModule.constants.ENTITY_UPDATE_DELETE, 'id': 'deleteValue' })
+      expect(yield iter.nextValue()).to.eql({
+         'type': testModule.constants.ENTITY_UPDATE_PUT, 
+         'payload': {
+           Id: 'testId', 
+           else: 'putValue'
+          }
+        }
+      )
+      expect(yield iter.nextValue()).to.eql({ 'type': testModule.constants.ENTITY_UPDATE_DELETE, 'id': 'testId' })
 
 
       iter.unsubscribe()
