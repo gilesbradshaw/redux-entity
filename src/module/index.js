@@ -102,21 +102,34 @@ const getModule = ({
       )
     ).retryWhen(errors=>errors.delay(signalRRetry))
   }
-  const joinSingle = (id) => ({signalR, apiClient}) => 
+  const joinSingle = (id, type) => ({signalR, apiClient}) => 
     Rx.Observable.of(1).switchMap(x=>
       signalR()
         .switchMap(subscriber => 
           Rx.Observable.of(1).flatMap(x=>
-            subscriber.join(getJoinSingleId(id)).flatMap(messages=>
+            subscriber.join(getJoinSingleId(id, type)).flatMap(messages=>
               Rx.Observable.of(
                 messages
                   .filter(message=>message.message.value.Id==id)
                   .map(message=>{
                     if(message.message && message.message.method==='put'){
-                      return {type: ENTITY_UPDATE_PUT, payload: message.message.value}
+                      return {
+                        type: ENTITY_UPDATE_PUT, 
+                        payload: {
+                          id,
+                          type,
+                          value: message.message.value
+                        }
+                      }
                     }
                     if(message.message && message.message.method==='delete'){
-                      return {type: ENTITY_UPDATE_DELETE, id: message.message.value.Id}
+                      return {
+                        type: ENTITY_UPDATE_DELETE, 
+                        payload: {
+                          id: message.message.value.Id,
+                          type
+                        }
+                      }
                     }
                     return {}
                   }
@@ -190,7 +203,9 @@ const getModule = ({
       }
     }
 
-  const loadErrorCancel = () => ({ type: ENTITIES_LOAD_FAIL_CANCEL})
+  const loadErrorCancel = () => ({
+    type: ENTITIES_LOAD_FAIL_CANCEL
+  })
   
   const loadMore = (loadConfig) => 
     {
@@ -217,44 +232,72 @@ const getModule = ({
           })            
     }
 
-  const loadSingle = (id) => ({signalR, apiClient}) => 
+  const loadSingle = (id, type='default') => ({signalR, apiClient}) => 
     (actions, {getState, dispatch}) => {
+      console.log(actions)
       if(getLoadSingleHasChanged({id, getState})) {
-        return joinSingle(id)({signalR, apiClient})
+        return joinSingle(id, type)({signalR, apiClient})
           .flatMap(changes => 
             apiClient.get(getSinglePath(id))
               .map(result => (
                 result.result
                 ? {
                   type: ENTITY_LOAD_SUCCESS, 
-                  payload: result.result
+                  payload: {
+                    id,
+                    type,
+                    result: result.result
+                  }
                 }
                 : {
                   type: ENTITY_LOAD_PROGRESS, 
                   payload: {
                     id,
+                    type,
                     progress: result.progress
                   }                  
                 }
               ))
               .concat(replayer(changes))
-              .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
+              .catch(error => Rx.Observable.of({
+                type: ENTITY_LOAD_FAIL, 
+                payload: {
+                  id,
+                  type,
+                  error
+                }
+              }))
           )
-          .startWith({type: ENTITY_LOAD, payload: id})
+          .startWith({
+            type: ENTITY_LOAD, 
+            payload: {
+              id,
+              type
+            }
+          })
           // miss a beat to allow for route changes...
           .takeUntil(
             Rx.Observable
               .empty()
               .delay(0)
               .concat(
-                actions.ofType(ENTITY_LOAD)
+                actions.ofType(ENTITY_LOAD).filter(
+                  action => action.payload.id === id && action.payload.type === type 
+                )
+                //.filter(action => action.type===ENTITY_LOAD && action.payload.id == id)
               )
           )
       } else {
         return Rx.Observable.empty()
       }
     } 
-  const singleLoadErrorCancel = () => ({ type: ENTITY_LOAD_FAIL_CANCEL})
+  const singleLoadErrorCancel = (id, type = 'default') => ({ 
+    type: ENTITY_LOAD_FAIL_CANCEL,
+    payload: {
+      id,
+      type
+    }
+  })
 
   const add = ({parentId, id= 'add'}) => ({ 
     type: ENTITIES_ADD, 
@@ -551,25 +594,52 @@ const upload = ({
 
     [ENTITY_LOAD]: (state, action) => ({
       ...state,
-      singleError: null, 
-      singleLoading: true,
-      singleLoad: action.payload,
-      singleData: null
+      single: {
+        ...state.single,
+        [action.payload.id]: {
+          ...(state.single && state.single[action.payload.id]),
+          [action.payload.type]: {
+            loading: true,
+            load: action.payload.id
+          }
+        }
+      }
     }),
     [ENTITY_LOAD_SUCCESS]: (state, action) => ({
-      ...state,  
-      singleData: action.payload, 
-      singleLoading: false
+      ...state,
+      single: {
+        ...state.single,
+        [action.payload.id]: {
+          ...(state.single && state.single[action.payload.id]),
+          [action.payload.type]: {
+            data: action.payload.result,
+            loading: false
+          }
+        }
+      }
     }),
     [ENTITY_LOAD_FAIL]: (state, action) => ({
-      ...state, 
-      singleError: action.payload, 
-      singleLoading: false
+      ...state,
+      single: {
+        ...state.single,
+        [action.payload.id]: {
+           ...(state.single && state.single[action.payload.id]),
+          [action.payload.type]: {
+            error: action.payload.error,
+            loading: false
+          }
+        }
+      } 
     }),
     [ENTITY_LOAD_FAIL_CANCEL]: (state, action) => ({
-      ...state, 
-      singleError: null,
-      singleLoad: null
+      ...state,
+      single: {
+        ...state.single,
+        [action.payload.id]: {
+           ...(state.single && state.single[action.payload.id]),
+          [action.payload.type]: null
+        }
+      } 
     }),
     [ENTITIES_EDIT_START]: (state, action) => ({
       ...state, 
@@ -713,25 +783,44 @@ const upload = ({
     },
     
     [ENTITY_UPDATE_PUT]: (state, action) => {
-      if(state.singleData && state.singleData.Id == action.payload.Id) {
-        return {
-          ...state, 
-          singleData: {
-            ...state.singleData, 
-            ...action.payload
+      return {
+        ...state,
+        single: {
+          ...state.single,
+          [action.payload.id]: {
+            ...(state.single && state.single[action.payload.id]),
+            [action.payload.type]: {
+              ...(
+                state.single 
+                && state.single[action.payload.id] 
+                && state.single[action.payload.id][action.payload.type]
+              ),
+              data: {
+                ...(
+                  state.single 
+                  && state.single[action.payload.id]
+                  && state.single[action.payload.id][action.payload.type]
+                  && state.single[action.payload.id][action.payload.type].data 
+                ),
+                ...action.payload.value  
+              }
+            } 
+            
           }
-        }
+        } 
       }
-      return state
     },
     [ENTITY_UPDATE_DELETE]: (state, action) => {
-      if(state.singleData && action.id === state.singleData.Id) {
-        return {
-          ...state, 
-          singleData: null 
-        }
+      return {
+        ...state,
+        single: {
+          ...state.single,
+          [action.payload.id]: {
+            ...(state.single && state.single[action.payload.id]),
+            [action.payload.type]: null
+          }
+        } 
       }
-      return state
     },
 
     [ENTITIES_DELETE_SUCCESS]: (state, action) => {
