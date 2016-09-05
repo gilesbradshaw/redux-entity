@@ -589,32 +589,17 @@ describe('(Redux Module) Nodes', () => {
 
         it('Should be reduced with type ENTITY_LOAD.', () => {
           const res = reducer({
-            giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here'
-              }
-            }
+            giles: 'test'
           }, {
               type: ENTITY_LOAD,
-              payload: {
-                id: 'testId',
-                type: 'testType'
-              }
+              payload: 'testId'
             })
           expect(res).to.eql({
             giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here',
-                testType: {
-                  loading: true,
-                  load: 'testId'
-                }
-              }
-            }
+            singleError: null,
+            singleLoading: true,
+            singleLoad: 'testId',
+            singleData: null
           })
         })
       })
@@ -629,33 +614,15 @@ describe('(Redux Module) Nodes', () => {
 
         it('Should be reduced with type ENTITY_LOAD_FAIL.', () => {
           const res = reducer({
-            giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here'
-              }
-            }
+            giles: 'test'
           }, {
               type: ENTITY_LOAD_FAIL,
-              payload: {
-                id: 'testId',
-                type: 'testType',
-                error: 'error'
-              }
+              payload: 'error'
             })
           expect(res).to.eql({
             giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here',
-                testType: {
-                  error: 'error',
-                  loading: false
-                }
-              }
-            }
+            singleError: 'error',
+            singleLoading: false
           })
         })
       })
@@ -669,33 +636,15 @@ describe('(Redux Module) Nodes', () => {
 
         it('Should be reduced with type ENTITY_LOAD_SUCCESS.', () => {
           const res = reducer({
-            giles: 'test',
-            single: {
-              what: 'was here',
-              id: {
-                what: 'was here'
-              }
-            }
+            giles: 'test'
           }, {
               type: ENTITY_LOAD_SUCCESS,
-              payload: {
-                id: 'id',
-                type: 'testType',
-                result: 'data'
-              }
+              payload: 'data'
             })
           expect(res).to.eql({
             giles: 'test',
-            single: {
-              what: 'was here',
-              id: {
-                what: 'was here',
-                testType: {
-                  data: 'data',
-                  loading: false
-                }
-              }
-            }
+            singleData: 'data',
+            singleLoading: false
           })
         })
       })
@@ -711,29 +660,15 @@ describe('(Redux Module) Nodes', () => {
         it('Should be reduced with type ENTITY_LOAD_FAIL_CANCEL.', () => {
           const res = reducer({
             giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here',
-                testType:'here'
-              }
-            }
+            singleError: 'error',
+            singleLoad: 'testId'
           }, {
-              type: ENTITY_LOAD_FAIL_CANCEL,
-              payload: {
-                id: 'testId',
-                type: 'testType'
-              }
+              type: ENTITY_LOAD_FAIL_CANCEL
             })
           expect(res).to.eql({
             giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here',
-                testType: null
-              }
-            }
+            singleError: null,
+            singleLoad: null
           })
         })
       })
@@ -1623,50 +1558,29 @@ describe('(Redux Module) Nodes', () => {
         it('reduced with type "ENTITY_UPDATE_PUT".', () => {
           const state = {
             giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here',
-                testType: {
-                  data: {
-                    Id: 'testId',
-                    Prop: 'prop',
-                    Name: 'giles'    
-                  }
-                }
-              }
+            singleData: {
+              Id: 'testId',
+              Prop: 'prop',
+              Name: 'giles'
             }
           }
           const res = reducer(state, {
             type: ENTITY_UPDATE_PUT,
-            payload: { 
-              id: 'testId',
-              type: 'testType',
-              value: {
-                Id: 'testId',
-                Name: 'fred',
-                Prop1: 'prop1'
-              }
+            payload: {
+              Id: 'testId',
+              Name: 'fred',
+              Prop1: 'prop1'
             }
           })
           expect(res).to.eql({
             'giles': 'test',
-              single: {
-                what: 'was here',
-                testId: {
-                  what: 'was here',
-                  testType: {
-                    data: {
-                      Id: 'testId',
-                      Name: 'fred',
-                      Prop: 'prop',
-                      Prop1: 'prop1'  
-                    }
-                  }
-                }
-              }
+            'singleData': {
+              'Id': 'testId',
+              'Name': 'fred',
+              Prop: 'prop',
+              Prop1: 'prop1'
             }
-          )
+          })
         })
       })
       describe('type: ENTITY_UPDATE_DELETE', () => {
@@ -1680,30 +1594,17 @@ describe('(Redux Module) Nodes', () => {
         it('reduced with type "ENTITY_UPDATE_DELETE".', () => {
           const state = {
             giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here',
-                testType: 'hello'
-              }
+            singleData: {
+              Id: 'testId'
             }
           }
           const res = reducer(state, {
             type: ENTITY_UPDATE_DELETE,
-            payload: {
-              id: 'testId',
-              type: 'testType'
-            }
+            id: 'testId'
           })
           expect(res).to.eql({
-            giles: 'test',
-            single: {
-              what: 'was here',
-              testId: {
-                what: 'was here',
-                testType: null
-              }
-            }
+            'giles': 'test',
+            'singleData': null
           })
         })
       })
@@ -2292,7 +2193,7 @@ describe('(Action Creator) loadSingle', () => {
       getLoadSingleHasChanged.returns(true)
     })
 
-    it('Should return an observable that operates type default.', function* () {
+    it('Should return an observable that operates.', function* () {
       const joinMessages = new Rx.Subject()
 
       const signalR = () => Rx.Observable.of({
@@ -2318,10 +2219,7 @@ describe('(Action Creator) loadSingle', () => {
 
       expect(yield iter.nextValue()).to.eql({
         type: testModule.constants.ENTITY_LOAD,
-        payload: {
-          id: 'id',
-          type: 'default'
-        }
+        payload: 'id'
       })
 
       expect(yield iter.nextValue())
@@ -2329,18 +2227,13 @@ describe('(Action Creator) loadSingle', () => {
           type: testModule.constants.ENTITY_LOAD_PROGRESS,
           payload: {
             id: 'id',
-            type: 'default',
             progress: 'progress'
           }  
         })
 
       expect(yield iter.nextValue()).to.eql({
         type: testModule.constants.ENTITY_LOAD_SUCCESS,
-        payload: {
-          id: 'id',
-          type: 'default',
-          result: 'giles'
-        }
+        payload: 'giles'
       })
 
       expect(apiClient.get.getCall(0).args[0]).to.equal('test me 2')
@@ -2365,177 +2258,17 @@ describe('(Action Creator) loadSingle', () => {
       expect(yield iter.nextValue()).to.eql({
         'type': testModule.constants.ENTITY_UPDATE_PUT,
         'payload': {
-          id: 'id',
-          type: 'default',
-          value: {
-              Id:'id',
-              else: 'putValue'
-            }
-        }
-      })
-      expect(yield iter.nextValue()).to.eql({
-        'type': testModule.constants.ENTITY_UPDATE_DELETE,
-        payload: {
-          id: 'id',
-          type: 'default'
-        } 
-      })
-      iter.unsubscribe()
-    })
-    it('Should return an observable that operates type testType.', function* () {
-      const joinMessages = new Rx.Subject()
-
-      const signalR = () => Rx.Observable.of({
-        join: () => Rx.Observable.of(joinMessages),
-
-      })
-
-      const apiClient = {
-        get: sinon.spy(() => Rx.Observable.from([
-          { progress: 'progress' },
-          { result: 'giles' }
-        ]))
-      }
-
-      getJoinSingleId.returns('test me')
-      getSinglePath.returns('test me 2')
-
-      const iter = loadSingle('id', 'testType')({ signalR, apiClient })(actions, {
-        dispatch: _dispatchSpy,
-        getState: _getStateSpy
-      }).toAsyncIterator()
-
-
-      expect(yield iter.nextValue()).to.eql({
-        type: testModule.constants.ENTITY_LOAD,
-        payload: {
-          id: 'id',
-          type: 'testType'
-        }
-      })
-
-      expect(yield iter.nextValue())
-        .to.eql({
-          type: testModule.constants.ENTITY_LOAD_PROGRESS,
-          payload: {
-            id: 'id',
-            type: 'testType',
-            progress: 'progress'
-          }  
-        })
-
-      expect(yield iter.nextValue()).to.eql({
-        type: testModule.constants.ENTITY_LOAD_SUCCESS,
-        payload: {
-          id: 'id',
-          type: 'testType',
-          result: 'giles'
-        }
-      })
-
-      expect(apiClient.get.getCall(0).args[0]).to.equal('test me 2')
-      expect(getSinglePath.getCall(0).args[0]).to.equal('id')
-      joinMessages.next({
-        message: {
-          method: 'put',
-          value: {
             Id:'id',
             else: 'putValue'
           }
-        }
-      })
-      joinMessages.next({
-        message: {
-          method: 'delete',
-          value: {
-            Id: 'id'
-          }
-        }
-      })
-      expect(yield iter.nextValue()).to.eql({
-        'type': testModule.constants.ENTITY_UPDATE_PUT,
-        'payload': {
-          id: 'id',
-          type: 'testType',
-          value: {
-              Id:'id',
-              else: 'putValue'
-            }
-        }
       })
       expect(yield iter.nextValue()).to.eql({
         'type': testModule.constants.ENTITY_UPDATE_DELETE,
-        payload: {
-          id: 'id',
-          type: 'testType'
-        } 
+        'id': 'id'
       })
-      iter.unsubscribe()
-    })
-
-    it('Should return an observable that operates on fail default type.', function* () {
-      const joinMessages = new Rx.Subject()
-      const signalR = () => Rx.Observable.of({
-        join: () => Rx.Observable.of(joinMessages),
-
-      })
-
-      const apiClient = {
-        get: sinon.spy(() => Rx.Observable.throw('giles'))
-      }
-      const iter = loadSingle('testId')({ signalR, apiClient })(actions, {
-        dispatch: _dispatchSpy,
-        getState: _getStateSpy
-      }).toAsyncIterator()
-
-      yield iter.nextValue()
-
-      expect(yield iter.nextValue()).to.eql({
-        type: testModule.constants.ENTITY_LOAD_FAIL, 
-        payload: {
-          id: 'testId',
-          type: 'default',
-          error: 'giles' 
-        }
-      })
-
-      yield iter.shouldComplete()
 
       iter.unsubscribe()
     })
-
-    it('Should return an observable that operates on fail testType type.', function* () {
-      const joinMessages = new Rx.Subject()
-      const signalR = () => Rx.Observable.of({
-        join: () => Rx.Observable.of(joinMessages),
-
-      })
-
-      const apiClient = {
-        get: sinon.spy(() => Rx.Observable.throw('giles'))
-      }
-      const iter = loadSingle('testId', 'testType')({ signalR, apiClient })(actions, {
-        dispatch: _dispatchSpy,
-        getState: _getStateSpy
-      }).toAsyncIterator()
-
-      yield iter.nextValue()
-
-      expect(yield iter.nextValue()).to.eql({
-        type: testModule.constants.ENTITY_LOAD_FAIL, 
-        payload: {
-          id: 'testId',
-          type: 'testType',
-          error: 'giles' 
-        }
-      })
-
-      yield iter.shouldComplete()
-
-      iter.unsubscribe()
-    })
-
-
     it('Should return an observable that retries on signalR fail.', function* (done) {
       const signalR = sinon.spy(() => {
         return Rx.Observable.throw()
@@ -2647,22 +2380,12 @@ describe('(Action Creator) loadSingle', () => {
       expect(yield iter.nextValue()).to.eql({
          'type': testModule.constants.ENTITY_UPDATE_PUT, 
          'payload': {
-           id: 'testId',
-           type: 'default',
-           value: {
-            Id: 'testId', 
-            else: 'putValue'
-           }
+           Id: 'testId', 
+           else: 'putValue'
           }
         }
       )
-      expect(yield iter.nextValue()).to.eql({ 
-        type: testModule.constants.ENTITY_UPDATE_DELETE, 
-        payload: {
-          'id': 'testId',
-          type: 'default' 
-        }
-      })
+      expect(yield iter.nextValue()).to.eql({ 'type': testModule.constants.ENTITY_UPDATE_DELETE, 'id': 'testId' })
 
 
       iter.unsubscribe()
@@ -3080,22 +2803,9 @@ describe('(Action Creator) singleLoadErrorCancel', () => {
     expect(singleLoadErrorCancel).to.be.a('function')
   })
 
-  it('Should return correct action default type.', () => {
-    expect(singleLoadErrorCancel('testId')).to.be.eql({
-      type: ENTITY_LOAD_FAIL_CANCEL,
-      payload: {
-        id: 'testId',
-        type: 'default'
-      }
-    })
-  })
-  it('Should return correct action testType.', () => {
-    expect(singleLoadErrorCancel('testId', 'testType')).to.be.eql({
-      type: ENTITY_LOAD_FAIL_CANCEL,
-      payload: {
-        id: 'testId',
-        type: 'testType'
-      }
+  it('Should return correct action.', () => {
+    expect(singleLoadErrorCancel()).to.be.eql({
+      type: ENTITY_LOAD_FAIL_CANCEL
     })
   })
 })

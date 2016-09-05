@@ -102,34 +102,21 @@ const getModule = ({
       )
     ).retryWhen(errors=>errors.delay(signalRRetry))
   }
-  const joinSingle = (id, type) => ({signalR, apiClient}) => 
+  const joinSingle = (id) => ({signalR, apiClient}) => 
     Rx.Observable.of(1).switchMap(x=>
       signalR()
         .switchMap(subscriber => 
           Rx.Observable.of(1).flatMap(x=>
-            subscriber.join(getJoinSingleId(id, type)).flatMap(messages=>
+            subscriber.join(getJoinSingleId(id)).flatMap(messages=>
               Rx.Observable.of(
                 messages
                   .filter(message=>message.message.value.Id==id)
                   .map(message=>{
                     if(message.message && message.message.method==='put'){
-                      return {
-                        type: ENTITY_UPDATE_PUT, 
-                        payload: {
-                          id,
-                          type,
-                          value: message.message.value
-                        }
-                      }
+                      return {type: ENTITY_UPDATE_PUT, payload: message.message.value}
                     }
                     if(message.message && message.message.method==='delete'){
-                      return {
-                        type: ENTITY_UPDATE_DELETE, 
-                        payload: {
-                          id: message.message.value.Id,
-                          type
-                        }
-                      }
+                      return {type: ENTITY_UPDATE_DELETE, id: message.message.value.Id}
                     }
                     return {}
                   }
@@ -203,9 +190,7 @@ const getModule = ({
       }
     }
 
-  const loadErrorCancel = () => ({
-    type: ENTITIES_LOAD_FAIL_CANCEL
-  })
+  const loadErrorCancel = () => ({ type: ENTITIES_LOAD_FAIL_CANCEL})
   
   const loadMore = (loadConfig) => 
     {
@@ -232,72 +217,44 @@ const getModule = ({
           })            
     }
 
-  const loadSingle = (id, type='default') => ({signalR, apiClient}) => 
+  const loadSingle = (id) => ({signalR, apiClient}) => 
     (actions, {getState, dispatch}) => {
-      console.log(actions)
       if(getLoadSingleHasChanged({id, getState})) {
-        return joinSingle(id, type)({signalR, apiClient})
+        return joinSingle(id)({signalR, apiClient})
           .flatMap(changes => 
             apiClient.get(getSinglePath(id))
               .map(result => (
                 result.result
                 ? {
                   type: ENTITY_LOAD_SUCCESS, 
-                  payload: {
-                    id,
-                    type,
-                    result: result.result
-                  }
+                  payload: result.result
                 }
                 : {
                   type: ENTITY_LOAD_PROGRESS, 
                   payload: {
                     id,
-                    type,
                     progress: result.progress
                   }                  
                 }
               ))
               .concat(replayer(changes))
-              .catch(error => Rx.Observable.of({
-                type: ENTITY_LOAD_FAIL, 
-                payload: {
-                  id,
-                  type,
-                  error
-                }
-              }))
+              .catch(error => Rx.Observable.of({type: ENTITY_LOAD_FAIL, payload: error}))
           )
-          .startWith({
-            type: ENTITY_LOAD, 
-            payload: {
-              id,
-              type
-            }
-          })
+          .startWith({type: ENTITY_LOAD, payload: id})
           // miss a beat to allow for route changes...
           .takeUntil(
             Rx.Observable
               .empty()
               .delay(0)
               .concat(
-                actions.ofType(ENTITY_LOAD).filter(
-                  action => action.payload.id === id && action.payload.type === type 
-                )
-                //.filter(action => action.type===ENTITY_LOAD && action.payload.id == id)
+                actions.ofType(ENTITY_LOAD)
               )
           )
       } else {
         return Rx.Observable.empty()
       }
     } 
-  const singleLoadErrorCancel = (id, type = 'default') => ({ 
-    type: ENTITY_LOAD_FAIL_CANCEL,
-    payload: {
-      id,
-      type
-    }
-  })
+  const singleLoadErrorCancel = () => ({ type: ENTITY_LOAD_FAIL_CANCEL})
 
   const add = ({parentId, id= 'add'}) => ({ 
     type: ENTITIES_ADD, 
@@ -334,21 +291,35 @@ const getModule = ({
         apiClient.put(putPath, {
             data: values
           }, files)
-        .flatMap(result=>Rx.Observable.of(
-          result.result
-          ? {
-            type: ENTITIES_SAVE_SUCCESS, 
-            id: values.Id, 
-            keepEditing
-          }
-          : {
-            type: ENTITIES_SAVE_PROGRESS, 
-            payload: {
-              id: values.Id, 
-              progress: result.progress
-            }
-          }
-        ))
+        .flatMap(result=> 
+          Rx.Observable.from(
+            result.result
+            ? [
+                {
+                  type: ENTITIES_SAVE_SUCCESS, 
+                  id: values.Id, 
+                  keepEditing
+                },
+                {
+                  type: ENTITY_UPDATE_PUT, 
+                  payload: result.result
+                },
+                {
+                  type: ENTITIES_UPDATE_PUT, 
+                  payload: result.result
+                }
+              ]
+            : [
+                {
+                  type: ENTITIES_SAVE_PROGRESS, 
+                  payload: {
+                    id: values.Id, 
+                    progress: result.progress
+                  }
+                }
+              ]  
+          )
+        )
         .catch(error => Rx.Observable.of({
           type: ENTITIES_SAVE_FAIL, 
           id: values.Id, 
@@ -361,20 +332,34 @@ const getModule = ({
         apiClient.post(postPath , {
             data: postConvert(values)
           }, files)
-        .flatMap(result=>Rx.Observable.of(
-          result.result
-          ? {
-            type: ENTITIES_ADD_SUCCESS,
-            id: values.Id
-          }
-          : {
-            type: ENTITIES_SAVE_PROGRESS, 
-            payload: {
-              id: values.Id, 
-              progress: result.progress
-            }
-          }
-        ))
+        .flatMap(result=>
+          Rx.Observable.from(
+            result.result
+            ? [
+                {
+                  type: ENTITIES_ADD_SUCCESS,
+                  id: values.Id
+                },
+                {
+                  type: ENTITY_UPDATE_POST, 
+                  payload: result.result
+                },
+                {
+                  type: ENTITIES_UPDATE_POST, 
+                  payload: result.result
+                }
+              ]
+            : [
+                {
+                  type: ENTITIES_SAVE_PROGRESS, 
+                  payload: {
+                    id: values.Id, 
+                    progress: result.progress
+                  }
+                }
+              ]
+          )
+        )
         .catch(error => Rx.Observable.of({
           type: ENTITIES_SAVE_FAIL, 
           id: values.Id, 
@@ -484,19 +469,34 @@ const upload = ({
     const deletePath = getDeletePath(id)
     return (actions, {getState}) =>
       apiClient.del(deletePath)
-      .flatMap(result => Rx.Observable.of(
-        result.result
-        ? {
-          type: ENTITIES_DELETE_SUCCESS, id
-        }
-        : {
-          type: ENTITIES_SAVE_PROGRESS, 
-          payload: {
-            id, 
-            progress: result.progress
-          }
-        }
-      ))
+      .flatMap(result => {
+       console.log(JSON.stringify(result, null, 2)) 
+        return Rx.Observable.from(
+          result.result
+          ? [
+            {
+              type: ENTITIES_DELETE_SUCCESS, id
+            },
+            ,
+            {
+              type: ENTITY_UPDATE_PUT, 
+              payload: result.result
+            },
+            {
+              type: ENTITIES_UPDATE_PUT, 
+              payload: result.result
+            }
+          ]
+          : [{
+            type: ENTITIES_SAVE_PROGRESS, 
+            payload: {
+              id, 
+              progress: result.progress
+            }
+          }]
+        )
+      }
+      )
       .catch(error => Rx.Observable.of({
         type: ENTITIES_SAVE_FAIL, 
         id, 
@@ -594,52 +594,25 @@ const upload = ({
 
     [ENTITY_LOAD]: (state, action) => ({
       ...state,
-      single: {
-        ...state.single,
-        [action.payload.id]: {
-          ...(state.single && state.single[action.payload.id]),
-          [action.payload.type]: {
-            loading: true,
-            load: action.payload.id
-          }
-        }
-      }
+      singleError: null, 
+      singleLoading: true,
+      singleLoad: action.payload,
+      singleData: null
     }),
     [ENTITY_LOAD_SUCCESS]: (state, action) => ({
-      ...state,
-      single: {
-        ...state.single,
-        [action.payload.id]: {
-          ...(state.single && state.single[action.payload.id]),
-          [action.payload.type]: {
-            data: action.payload.result,
-            loading: false
-          }
-        }
-      }
+      ...state,  
+      singleData: action.payload, 
+      singleLoading: false
     }),
     [ENTITY_LOAD_FAIL]: (state, action) => ({
-      ...state,
-      single: {
-        ...state.single,
-        [action.payload.id]: {
-           ...(state.single && state.single[action.payload.id]),
-          [action.payload.type]: {
-            error: action.payload.error,
-            loading: false
-          }
-        }
-      } 
+      ...state, 
+      singleError: action.payload, 
+      singleLoading: false
     }),
     [ENTITY_LOAD_FAIL_CANCEL]: (state, action) => ({
-      ...state,
-      single: {
-        ...state.single,
-        [action.payload.id]: {
-           ...(state.single && state.single[action.payload.id]),
-          [action.payload.type]: null
-        }
-      } 
+      ...state, 
+      singleError: null,
+      singleLoad: null
     }),
     [ENTITIES_EDIT_START]: (state, action) => ({
       ...state, 
@@ -721,6 +694,7 @@ const upload = ({
       })
     },
     [ENTITIES_UPDATE_PUT]: (state, action) => {
+      console.log('[put], action', action)
       const deleted = state.loadDeleted 
       //total count changes with deletion
       const totalCountChange = deleted && action.payload.IsDeleted 
@@ -750,7 +724,7 @@ const upload = ({
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
       
-      
+      console.log('post, action', action)
       const found = state.data.Values.find(state => state.Id === action.payload.Id)
       const deleted = state.loadDeleted 
       const totalCountChange = !deleted && !found ? 1 : 0 
@@ -783,44 +757,26 @@ const upload = ({
     },
     
     [ENTITY_UPDATE_PUT]: (state, action) => {
-      return {
-        ...state,
-        single: {
-          ...state.single,
-          [action.payload.id]: {
-            ...(state.single && state.single[action.payload.id]),
-            [action.payload.type]: {
-              ...(
-                state.single 
-                && state.single[action.payload.id] 
-                && state.single[action.payload.id][action.payload.type]
-              ),
-              data: {
-                ...(
-                  state.single 
-                  && state.single[action.payload.id]
-                  && state.single[action.payload.id][action.payload.type]
-                  && state.single[action.payload.id][action.payload.type].data 
-                ),
-                ...action.payload.value  
-              }
-            } 
-            
+      console.log('put, action', action)
+      if(state.singleData && state.singleData.Id == action.payload.Id) {
+        return {
+          ...state, 
+          singleData: {
+            ...state.singleData, 
+            ...action.payload
           }
-        } 
+        }
       }
+      return state
     },
     [ENTITY_UPDATE_DELETE]: (state, action) => {
-      return {
-        ...state,
-        single: {
-          ...state.single,
-          [action.payload.id]: {
-            ...(state.single && state.single[action.payload.id]),
-            [action.payload.type]: null
-          }
-        } 
+      if(state.singleData && action.id === state.singleData.Id) {
+        return {
+          ...state, 
+          singleData: null 
+        }
       }
+      return state
     },
 
     [ENTITIES_DELETE_SUCCESS]: (state, action) => {
