@@ -341,10 +341,6 @@ const getModule = ({
                   id: values.Id
                 },
                 {
-                  type: ENTITY_UPDATE_POST, 
-                  payload: result.result
-                },
-                {
                   type: ENTITIES_UPDATE_POST, 
                   payload: result.result
                 }
@@ -470,30 +466,30 @@ const upload = ({
     return (actions, {getState}) =>
       apiClient.del(deletePath)
       .flatMap(result => {
-       console.log(JSON.stringify(result, null, 2)) 
         return Rx.Observable.from(
           result.result
           ? [
-            {
-              type: ENTITIES_DELETE_SUCCESS, id
-            },
-            ,
-            {
-              type: ENTITY_UPDATE_PUT, 
-              payload: result.result
-            },
-            {
-              type: ENTITIES_UPDATE_PUT, 
-              payload: result.result
-            }
-          ]
-          : [{
-            type: ENTITIES_SAVE_PROGRESS, 
-            payload: {
-              id, 
-              progress: result.progress
-            }
-          }]
+              {
+                type: ENTITIES_DELETE_SUCCESS, id
+              },
+              {
+                type: ENTITY_UPDATE_PUT, 
+                payload: result.result
+              },
+              {
+                type: ENTITIES_UPDATE_PUT, 
+                payload: result.result
+              }
+            ]
+          : [
+              {
+                type: ENTITIES_SAVE_PROGRESS, 
+                payload: {
+                  id, 
+                  progress: result.progress
+                }
+              }
+            ]
         )
       }
       )
@@ -694,7 +690,6 @@ const upload = ({
       })
     },
     [ENTITIES_UPDATE_PUT]: (state, action) => {
-      console.log('[put], action', action)
       const deleted = state.loadDeleted 
       //total count changes with deletion
       const totalCountChange = deleted && action.payload.IsDeleted 
@@ -724,7 +719,6 @@ const upload = ({
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
       
-      console.log('post, action', action)
       const found = state.data.Values.find(state => state.Id === action.payload.Id)
       const deleted = state.loadDeleted 
       const totalCountChange = !deleted && !found ? 1 : 0 
@@ -757,7 +751,6 @@ const upload = ({
     },
     
     [ENTITY_UPDATE_PUT]: (state, action) => {
-      console.log('put, action', action)
       if(state.singleData && state.singleData.Id == action.payload.Id) {
         return {
           ...state, 

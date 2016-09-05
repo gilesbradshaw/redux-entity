@@ -2446,11 +2446,23 @@ describe('(Action Creator) save', () => {
        }
       })
 
+    
     expect(yield iter.nextValue()).to.eql({
       type: testModule.constants.ENTITIES_SAVE_SUCCESS,
       id: 'testId',
       keepEditing: undefined
     })
+
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITY_UPDATE_PUT,
+      payload: 'giles'
+    })
+
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPDATE_PUT,
+      payload: 'giles'
+    })
+
 
     yield iter.shouldComplete()
 
@@ -2497,6 +2509,16 @@ describe('(Action Creator) save', () => {
       type: testModule.constants.ENTITIES_SAVE_SUCCESS,
       id: 'testId',
       keepEditing: true
+    })
+
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITY_UPDATE_PUT,
+      payload: 'giles'
+    })
+
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPDATE_PUT,
+      payload: 'giles'
     })
 
     yield iter.shouldComplete()
@@ -2553,9 +2575,16 @@ describe('(Action Creator) save', () => {
        }
       })
     
+    
     expect(yield iter.nextValue()).to.eql({
       type: testModule.constants.ENTITIES_ADD_SUCCESS,
       id: 'testId'
+    })
+
+
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPDATE_POST,
+      payload: 'giles'
     })
 
     yield iter.shouldComplete()
@@ -2859,6 +2888,16 @@ describe('(Action Creator) remove', () => {
     expect(yield iter.nextValue()).to.eql({
       'type': testModule.constants.ENTITIES_DELETE_SUCCESS,
       'id': 'testId'
+    })
+
+     expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITY_UPDATE_PUT,
+      payload: 'giles'
+    })
+
+    expect(yield iter.nextValue()).to.eql({
+      type: testModule.constants.ENTITIES_UPDATE_PUT,
+      payload: 'giles'
     })
 
 
