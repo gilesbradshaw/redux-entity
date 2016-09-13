@@ -22,7 +22,8 @@ describe('(Redux Module) Nodes', () => {
     getUploadPutPath,
     getDeletePath,
     postConvert,
-    dontDoDelete
+    dontDoDelete,
+    filter
   beforeEach(() => {
     getJoinId = sinon.stub()
     getJoinSingleId = sinon.stub()
@@ -38,6 +39,7 @@ describe('(Redux Module) Nodes', () => {
     getDeletePath = sinon.stub()
     postConvert = sinon.stub()
     dontDoDelete = sinon.stub()
+    filter = sinon.stub()
 
     configureModule({
       name: 'TESTMODULE',
@@ -55,6 +57,7 @@ describe('(Redux Module) Nodes', () => {
       getDeletePath,
       postConvert,
       dontDoDelete,
+      filter,
       signalRRetry: 5
     })
     testModule = entityModule('TESTMODULE')
@@ -1175,8 +1178,73 @@ describe('(Redux Module) Nodes', () => {
         beforeEach(() => {
           ENTITIES_UPDATE_PUT = testModule.constants.ENTITIES_UPDATE_PUT
         })
+        it('reduced with type "ENTITIES_UPDATE_PUT".  filter called', () => {
+          const state = {
+            loadDefaults: 'loadDefaults',
+            data: {}
+          }
+          reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              method: 'put',
+              oldValue: 'oldValue',
+              value: 'value'
+            }
+          })
 
-        it('reduced with type "ENTITIES_UPDATE_PUT".', () => {
+          expect(filter.getCall(0).args[0]).to.eql('loadDefaults')
+          expect(filter.getCall(0).args[1]).to.eql('oldValue')
+          
+          expect(filter.getCall(1).args[0]).to.eql('loadDefaults')
+          expect(filter.getCall(1).args[1 ]).to.eql('value')
+        })
+
+        it('reduced with type "ENTITIES_UPDATE_PUT". filter adds', () => {
+          filter.onCall(0).returns(false)
+          filter.onCall(1).returns(true)
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+              ]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              method: 'put',
+              oldValue: {
+                
+              },
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1'
+              }
+            }
+          })
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 11,
+              Values: [
+                {
+                  'Id': 'testId',
+                  'Name': 'fred',
+                  Prop1: 'prop1'
+                }
+              ]
+            },
+            singleData: undefined
+          })
+        })
+
+        it('reduced with type "ENTITIES_UPDATE_PUT".  filter leaves', () => {
+          filter.onCall(0).returns(true)
+          filter.onCall(1).returns(true)
           const state = {
             giles: 'test',
             loadOrder: 'Whatever',
@@ -1195,6 +1263,9 @@ describe('(Redux Module) Nodes', () => {
             type: ENTITIES_UPDATE_PUT,
             payload: {
               method: 'put',
+              oldValue: {
+
+              },
               value: {
                 Id: 'testId',
                 Name: 'fred',
@@ -1219,7 +1290,52 @@ describe('(Redux Module) Nodes', () => {
             singleData: undefined
           })
         })
+        it('reduced with type "ENTITIES_UPDATE_PUT".  filter removes', () => {
+          filter.onCall(0).returns(true)
+          filter.onCall(1).returns(false)
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+                {
+                  Id: 'testId',
+                  Prop: 'prop',
+                  Name: 'giles'
+                }
+              ]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              method: 'put',
+              oldValue: {
+
+              },
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1'
+              }
+            }
+          })
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 9,
+              Values: [
+              ]
+            },
+            singleData: undefined
+          })
+        })
+
         it('reduced with type "ENTITIES_UPDATE_PUT with no data".', () => {
+          filter.onCall(0).returns(true)
+          filter.onCall(1).returns(true)
           const state = {
             giles: 'test',
             loadOrder: 'Whatever',
@@ -1281,42 +1397,9 @@ describe('(Redux Module) Nodes', () => {
           })
         })
 
-        it('reduced with type "ENTITIES_UPDATE_PUT" deleted.', () => {
-          const state = {
-            giles: 'test',
-            loadOrder: 'Whatever',
-            loadDeleted: false,
-            data: {
-              TotalCount: 101,
-              Values: [{
-                Id: 'testId',
-                Prop: 'prop',
-                Name: 'giles'
-              }]
-            }
-          }
-          const res = reducer(state, {
-            type: ENTITIES_UPDATE_PUT,
-            payload: {
-              method: 'put',
-              value: {
-                Id: 'testId',
-                IsDeleted: true
-              }
-            }
-          })
-          expect(res).to.eql({
-            giles: 'test',
-            loadOrder: 'Whatever',
-            loadDeleted: false,
-            data: {
-              TotalCount: 100,
-              Values: []
-            },
-            singleData: undefined
-          })
-        })
-        it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required default order.', () => {
+        it('reduced with type "ENTITIES_UPDATE_PUT" filter adds default order.', () => {
+          filter.onCall(0).returns(false)
+          filter.onCall(1).returns(true)
           const state = {
             giles: 'test',
             loadDeleted: true,
@@ -1364,7 +1447,9 @@ describe('(Redux Module) Nodes', () => {
             singleData: undefined
           })
         })
-        it('reduced with type "ENTITIES_UPDATE_PUT" deleted and deleted required reverse order.', () => {
+        it('reduced with type "ENTITIES_UPDATE_PUT" filter adds reverse order.', () => {
+          filter.onCall(0).returns(false)
+          filter.onCall(1).returns(true)
           const state = {
             giles: 'test',
             loadDeleted: true,

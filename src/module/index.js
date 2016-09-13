@@ -24,7 +24,8 @@ const getModule = ({
   postConvert,
   signalRRetry=10000,
   getNew = ()=> null,
-  dontDoDelete=()=>false
+  dontDoDelete=()=>false,
+  filter= (payload) => null
 }) => {
   const ENTITIES_UPDATE_PUT = 'react-dealerweb/ENTITIES_UPDATE_PUT:' + name
   const ENTITIES_UPDATE_POST = 'react-dealerweb/ENTITIES_UPDATE_POST:' + name
@@ -722,23 +723,28 @@ const upload = ({
       })
     },
     [ENTITIES_UPDATE_PUT]: (state, action) => {
-      const deleted = state.loadDeleted 
+      const prevIn = filter(state.loadDefaults, action.payload.oldValue)
+      const newIn = filter(state.loadDefaults, action.payload.value)
       //total count changes with deletion
-      const totalCountChange = dontDoDelete() ? 0 : (
-        deleted && action.payload.value.IsDeleted 
+      const totalCountChange = prevIn & !newIn 
+        ? -1
+        : (newIn && !prevIn
           ? 1
-          : (!deleted && action.payload.value.IsDeleted ? -1 : 0)
-      ) 
+          : 0) 
       if(state.data && state.data.Values) {
-        const found = state.data.Values.find(state => state.Id === action.payload.value.Id)
-        const replace = {
-          ...found, 
-          ...action.payload.value
-        }
-        if(state.data.Values.indexOf(found) > -1) {
-          state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)
+        if(newIn) {
+          const found = state.data.Values.find(state => state.Id === action.payload.value.Id)
+          const replace = {
+            ...found, 
+            ...action.payload.value
+          }
+          if(state.data.Values.indexOf(found) > -1) {
+            state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)
+          } else {
+            state.data.Values.push(replace)
+          }
         } else {
-          state.data.Values.push(replace)
+         state.data.Values = state.data.Values.filter(state => state.Id !== action.payload.value.Id) 
         }
       }      
       return {
