@@ -538,7 +538,10 @@ const upload = ({
       const deleted = state.loadDeleted 
       const ret = values
         .map(value=>value)
-        .filter(value => dontDoDelete() || (value.IsDeleted && deleted) || (!value.IsDeleted && !deleted)) 
+        .filter(value => dontDoDelete() 
+          || (value.IsDeleted && deleted) 
+          || (!value.IsDeleted && !deleted)
+        ) 
         .sort((a,b) =>{
           const aa = a[field] && a[field].toLowerCase ? a[field].toLowerCase() : a[field]
           const bb = b[field] && b[field].toLowerCase ? b[field].toLowerCase() : b[field]
@@ -740,7 +743,10 @@ const upload = ({
       }      
       return {
         ...state,
-        singleData: state.singleData && action.payload.value.Id === state.singleData.Id ? action.payload.value : state.singleData,  
+        singleData: state.singleData 
+          && action.payload.value.Id === state.singleData.Id 
+            ? action.payload.value 
+            : state.singleData,  
         data: {
           ...state.data,
           TotalCount: state.data && state.data.TotalCount + totalCountChange, 
