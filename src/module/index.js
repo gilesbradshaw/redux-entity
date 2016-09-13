@@ -1,5 +1,6 @@
 import * as Rx from 'rxjs'
 
+const APP_INITIALISE = 'react-dealerweb/APP_INITIALISE'
 // ------------------------------------
 // Constants
 // ------------------------------------
@@ -21,7 +22,9 @@ const getModule = ({
   getUploadPutPath,
   getDeletePath,
   postConvert,
-  signalRRetry=10000
+  signalRRetry=10000,
+  getNew = ()=> null,
+  dontDoDelete=()=>false
 }) => {
   const ENTITIES_UPDATE_PUT = 'react-dealerweb/ENTITIES_UPDATE_PUT:' + name
   const ENTITIES_UPDATE_POST = 'react-dealerweb/ENTITIES_UPDATE_POST:' + name
@@ -86,13 +89,22 @@ const getModule = ({
                   .filter(message=> getJoinFilter(joinConfig)(message.message.value))
                   .map(message => {
                     if (message.message && message.message.method === 'put') {
-                      return {type: ENTITIES_UPDATE_PUT, payload: message.message.value}
+                      return {
+                        type: ENTITIES_UPDATE_PUT, 
+                        payload: message.message
+                      }
                     }
                     if (message.message && message.message.method === 'post') {
-                      return {type: ENTITIES_UPDATE_POST, payload: message.message.value}
+                      return {
+                        type: ENTITIES_UPDATE_POST, 
+                        payload: message.message
+                      }
                     }
                     if (message.message && message.message.method === 'delete') {
-                      return {type: ENTITIES_UPDATE_DELETE, id: message.message.value.Id}
+                      return {
+                        type: ENTITIES_UPDATE_DELETE, 
+                        payload: message.message
+                      }
                     }
                   }
                 )
@@ -194,6 +206,7 @@ const getModule = ({
   
   const loadMore = (loadConfig) => 
     {
+      console.log('load more', loadConfig)
     return ({apiClient}) =>   
       (actions, {getState}) => 
         apiClient.get(getLoadPath(getLoadDefaults(loadConfig)))
@@ -281,6 +294,7 @@ const getModule = ({
   })
   
   const save = ({
+    oldValues,
     values, 
     files, 
     keepEditing
@@ -306,7 +320,11 @@ const getModule = ({
                 },
                 {
                   type: ENTITIES_UPDATE_PUT, 
-                  payload: result.result
+                  payload: {
+                    method: 'put',
+                    oldValue: oldValues,
+                    value: result.result
+                  }
                 }
               ]
             : [
@@ -342,7 +360,10 @@ const getModule = ({
                 },
                 {
                   type: ENTITIES_UPDATE_POST, 
-                  payload: result.result
+                  payload: {
+                    method: 'post',
+                    value: result.result
+                  }
                 }
               ]
             : [
@@ -461,8 +482,8 @@ const upload = ({
 
 
 
-  const remove = (id) => ({apiClient}) => {
-    const deletePath = getDeletePath(id)
+  const remove = (values) => ({apiClient}) => {
+    const deletePath = getDeletePath(values)
     return (actions, {getState}) =>
       apiClient.del(deletePath)
       .flatMap(result => {
@@ -470,7 +491,8 @@ const upload = ({
           result.result
           ? [
               {
-                type: ENTITIES_DELETE_SUCCESS, id
+                type: ENTITIES_DELETE_SUCCESS, 
+                id: values.Id
               },
               {
                 type: ENTITY_UPDATE_PUT, 
@@ -478,14 +500,18 @@ const upload = ({
               },
               {
                 type: ENTITIES_UPDATE_PUT, 
-                payload: result.result
+                payload: {
+                  method: 'put',
+                  oldValue: values,
+                  value: result.result
+                }
               }
             ]
           : [
               {
                 type: ENTITIES_SAVE_PROGRESS, 
                 payload: {
-                  id, 
+                  id: values.Id, 
                   progress: result.progress
                 }
               }
@@ -495,10 +521,13 @@ const upload = ({
       )
       .catch(error => Rx.Observable.of({
         type: ENTITIES_SAVE_FAIL, 
-        id, 
+        id: values.Id, 
         error: error
       }))
-      .startWith({type: ENTITIES_DELETE, id})
+      .startWith({
+        type: ENTITIES_DELETE, 
+        id: values.Id
+      })
   }
 
   // orders and filters data according to state
@@ -509,7 +538,7 @@ const upload = ({
       const deleted = state.loadDeleted 
       const ret = values
         .map(value=>value)
-        .filter(value => (value.IsDeleted && deleted) || (!value.IsDeleted && !deleted)) 
+        .filter(value => dontDoDelete() || (value.IsDeleted && deleted) || (!value.IsDeleted && !deleted)) 
         .sort((a,b) =>{
           const aa = a[field] && a[field].toLowerCase ? a[field].toLowerCase() : a[field]
           const bb = b[field] && b[field].toLowerCase ? b[field].toLowerCase() : b[field]
@@ -692,14 +721,16 @@ const upload = ({
     [ENTITIES_UPDATE_PUT]: (state, action) => {
       const deleted = state.loadDeleted 
       //total count changes with deletion
-      const totalCountChange = deleted && action.payload.IsDeleted 
-        ? 1
-        : (!deleted && action.payload.IsDeleted ? -1 : 0) 
+      const totalCountChange = dontDoDelete() ? 0 : (
+        deleted && action.payload.value.IsDeleted 
+          ? 1
+          : (!deleted && action.payload.value.IsDeleted ? -1 : 0)
+      ) 
       if(state.data && state.data.Values) {
-        const found = state.data.Values.find(state => state.Id === action.payload.Id)
+        const found = state.data.Values.find(state => state.Id === action.payload.value.Id)
         const replace = {
           ...found, 
-          ...action.payload
+          ...action.payload.value
         }
         if(state.data.Values.indexOf(found) > -1) {
           state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)
@@ -709,7 +740,7 @@ const upload = ({
       }      
       return {
         ...state,
-        singleData: state.singleData && action.payload.Id === state.singleData.Id ? action.payload : state.singleData,  
+        singleData: state.singleData && action.payload.value.Id === state.singleData.Id ? action.payload.value : state.singleData,  
         data: {
           ...state.data,
           TotalCount: state.data && state.data.TotalCount + totalCountChange, 
@@ -719,14 +750,14 @@ const upload = ({
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
       
-      const found = state.data.Values.find(state => state.Id === action.payload.Id)
+      const found = state.data.Values.find(state => state.Id === action.payload.value.Id)
       const deleted = state.loadDeleted 
       const totalCountChange = !deleted && !found ? 1 : 0 
       if (found) {
-        const replace = {...action.payload}
+        const replace = {...action.payload.value}
         state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)
       } else {
-        state.data.Values.push(action.payload)
+        state.data.Values.push(action.payload.value)
       }
       return {
         ...state, 
@@ -745,7 +776,7 @@ const upload = ({
         data: {
           ...state.data,
           TotalCount: state.data.TotalCount-1, 
-          Values: state.data.Values.filter(state => state.Id !== action.id)
+          Values: state.data.Values.filter(state => state.Id !== action.payload.value.Id)
         }
       }
     },
@@ -801,9 +832,9 @@ const upload = ({
             Id: action.id, 
             ParentId: action.parentId, 
             isNew: true, 
-            Name: ''
-          }
-          ].concat(state.data.Values)
+            Name: '',
+            ...getNew(action)
+          }].concat(state.data.Values)
         }
       })
     },
@@ -868,8 +899,10 @@ const upload = ({
     [ENTITIES_UPLOAD_FAIL_CANCEL]: (state, action) => ({
       ...state,
       ...nullIfNone(state, action.payload.id, 'uploading', action.payload.uploadType)
+    }),
+    [APP_INITIALISE]: (state, action) => ({
+      ...initialState
     })
-
   }
 
   const nullIfNone = (state, id, fieldName, subFieldName) => ({

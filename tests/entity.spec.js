@@ -21,7 +21,8 @@ describe('(Redux Module) Nodes', () => {
     getPutPath,
     getUploadPutPath,
     getDeletePath,
-    postConvert
+    postConvert,
+    dontDoDelete
   beforeEach(() => {
     getJoinId = sinon.stub()
     getJoinSingleId = sinon.stub()
@@ -36,6 +37,7 @@ describe('(Redux Module) Nodes', () => {
     getUploadPutPath = sinon.stub()
     getDeletePath = sinon.stub()
     postConvert = sinon.stub()
+    dontDoDelete = sinon.stub()
 
     configureModule({
       name: 'TESTMODULE',
@@ -52,6 +54,7 @@ describe('(Redux Module) Nodes', () => {
       getUploadPutPath,
       getDeletePath,
       postConvert,
+      dontDoDelete,
       signalRRetry: 5
     })
     testModule = entityModule('TESTMODULE')
@@ -950,7 +953,7 @@ describe('(Redux Module) Nodes', () => {
 
     })
     
-    describe('ENITIES_SAVE', ()=> {
+    describe('ENTITIES_SAVE', ()=> {
 
       describe('type: ENTITIES_SAVE', () => {
 
@@ -1191,9 +1194,12 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_PUT,
             payload: {
-              Id: 'testId',
-              Name: 'fred',
-              Prop1: 'prop1'
+              method: 'put',
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1'
+              }
             }
           })
           expect(res).to.eql({
@@ -1221,9 +1227,12 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_PUT,
             payload: {
-              Id: 'testId',
-              Name: 'fred',
-              Prop1: 'prop1'
+              method: 'put',
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1'
+              }
             }
           })
           expect(res).to.eql({
@@ -1249,9 +1258,12 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_PUT,
             payload: {
-              Id: 'testId',
-              Name: 'fred',
-              Prop1: 'prop1'
+              method: 'put',
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1'
+              }
             }
           })
           expect(res).to.eql({
@@ -1286,8 +1298,11 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_PUT,
             payload: {
-              Id: 'testId',
-              IsDeleted: true
+              method: 'put',
+              value: {
+                Id: 'testId',
+                IsDeleted: true
+              }
             }
           })
           expect(res).to.eql({
@@ -1321,8 +1336,11 @@ describe('(Redux Module) Nodes', () => {
             {
               type: ENTITIES_UPDATE_PUT,
               payload: {
-                Id: 'testId2',
-                IsDeleted: true
+                method: 'put',
+                value: {
+                  Id: 'testId2',
+                  IsDeleted: true
+                }
               }
             }
           )
@@ -1364,8 +1382,11 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_PUT,
             payload: {
-              Id: 'testId2',
-              IsDeleted: true
+              method: 'put',
+              value: {
+                Id: 'testId2',
+                IsDeleted: true
+              }
             }
           })
           expect(res).to.eql({
@@ -1413,9 +1434,12 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_POST,
             payload: {
-              Id: 'testId1',
-              Prop1: 'prop1',
-              Name: 'fred2'
+              method: 'post',
+              value: {
+                Id: 'testId1',
+                Prop1: 'prop1',
+                Name: 'fred2'
+              }
             }
           })
           expect(res).to.eql({
@@ -1453,9 +1477,12 @@ describe('(Redux Module) Nodes', () => {
           const res = reducer(state, {
             type: ENTITIES_UPDATE_POST,
             payload: {
-              Id: 'testId1',
-              Prop1: 'prop1',
-              Name: 'fred2'
+              method: 'post',
+              value: {
+                Id: 'testId1',
+                Prop1: 'prop1',
+                Name: 'fred2'
+              }
             }
           })
           expect(res).to.eql({
@@ -1491,9 +1518,12 @@ describe('(Redux Module) Nodes', () => {
             const res = reducer(state, {
               type: ENTITIES_UPDATE_POST,
               payload: {
-                Id: 'testId',
-                Prop1: 'prop1',
-                Name: 'fred2'
+                method: 'post',
+                value: {
+                  Id: 'testId',
+                  Prop1: 'prop1',
+                  Name: 'fred2'
+                }
               }
             })
             expect(res).to.eql({
@@ -1531,7 +1561,16 @@ describe('(Redux Module) Nodes', () => {
               ]
             }
           }
-          const res = reducer(state, { type: ENTITIES_UPDATE_DELETE, id: 'testId' })
+          const res = reducer(state, { 
+            type: ENTITIES_UPDATE_DELETE, 
+            payload: {
+              method: 'delete',
+              value: {
+                Id: 'testId'
+              },
+              oldValue: 'oldDeleteValue'
+            }
+          })
           expect(res).to.eql({
             'giles': 'test',
             'data': {
@@ -1919,36 +1958,49 @@ describe('(Action Creator) load', () => {
         joinMessages.next({
           message: {
             method: 'put',
-            value: 'putValue'
+            value: 'putValue',
+            oldValue: 'oldPutValue'
           }
         })
         joinMessages.next({
           message: {
             method: 'post',
-            value: 'postValue'
+            value: 'postValue',
+            oldValue: 'oldPostValue'
           }
         })
         joinMessages.next({
           message: {
             method: 'delete',
-            value: {
-              Id: 'deleteValue'
-            }
+            value: 'deleteValue',
+            oldValue: 'oldDeleteValue'
           }
         })
 
         expect(yield iter.nextValue()).to.eql({
           type: ENTITIES_UPDATE_PUT,
-          payload: 'putValue'
+          payload: {
+            method: 'put',
+            value: 'putValue',
+            oldValue: 'oldPutValue'
+          }
         })
         expect(yield iter.nextValue()).to.eql({
           type: ENTITIES_UPDATE_POST,
-          payload: 'postValue'
+          payload: {
+            method: 'post',
+            value: 'postValue',
+            oldValue: 'oldPostValue'
+          }
         })
 
         expect(yield iter.nextValue()).to.eql({
           type: ENTITIES_UPDATE_DELETE,
-          id: 'deleteValue'
+          payload: {
+            method: 'delete',
+            value: 'deleteValue',
+            oldValue: 'oldDeleteValue'
+          }
         })
 
         iter.unsubscribe()
@@ -1959,9 +2011,27 @@ describe('(Action Creator) load', () => {
 
         const signalR = () => Rx.Observable.of({
           join: () => Rx.Observable.of(Rx.Observable.of(
-            { message: { method: 'post', value: 'postValue' } },
-            { message: { method: 'put', value: 'putValue' } },
-            { message: { method: 'delete', value: {Id: 'deleteValue'} } }
+            { 
+              message: { 
+                method: 'post', 
+                value: 'postValue',
+                oldValue: 'oldPostValue' 
+              } 
+            },
+            { 
+              message: { 
+                method: 'put', 
+                value: 'putValue',
+                oldValue: 'oldPutValue' 
+              } 
+            },
+            { 
+              message: { 
+                method: 'delete', 
+                value: 'deleteValue',
+                oldValue: 'oldDeleteValue' 
+              } 
+            }
           ))
         })
 
@@ -1987,16 +2057,28 @@ describe('(Action Creator) load', () => {
 
         expect(v1).to.eql({
           type: ENTITIES_UPDATE_POST,
-          payload: 'postValue'
+          payload: { 
+            method: 'post', 
+            value: 'postValue',
+            oldValue: 'oldPostValue' 
+          }
         })
 
         expect(v2).to.eql({
           type: ENTITIES_UPDATE_PUT,
-          payload: 'putValue'
+          payload: { 
+            method: 'put', 
+            value: 'putValue',
+            oldValue: 'oldPutValue' 
+          } 
         })
         expect(v3).to.eql({
           type: ENTITIES_UPDATE_DELETE,
-          id: 'deleteValue'
+          payload: { 
+            method: 'delete', 
+            value: 'deleteValue',
+            oldValue: 'oldDeleteValue' 
+          }
         })
 
 
@@ -2417,6 +2499,7 @@ describe('(Action Creator) save', () => {
     }
     getPutPath.returns('test put path')
     const iter = save({
+      oldValues: 'oldValues',
       values: {
         Id: 'testId'
       },
@@ -2460,7 +2543,11 @@ describe('(Action Creator) save', () => {
 
     expect(yield iter.nextValue()).to.eql({
       type: testModule.constants.ENTITIES_UPDATE_PUT,
-      payload: 'giles'
+      payload: {
+        method: 'put',
+        oldValue: 'oldValues',
+        value: 'giles'
+      }
     })
 
 
@@ -2478,6 +2565,7 @@ describe('(Action Creator) save', () => {
     }
     getPutPath.returns('test put path')
     const iter = save({
+      oldValues: 'oldValues',
       values: {
         Id: 'testId'
       },
@@ -2515,10 +2603,14 @@ describe('(Action Creator) save', () => {
       type: testModule.constants.ENTITY_UPDATE_PUT,
       payload: 'giles'
     })
-
+    
     expect(yield iter.nextValue()).to.eql({
       type: testModule.constants.ENTITIES_UPDATE_PUT,
-      payload: 'giles'
+      payload: {
+        method: 'put',
+        oldValue: 'oldValues',
+        value: 'giles'
+      }
     })
 
     yield iter.shouldComplete()
@@ -2581,10 +2673,12 @@ describe('(Action Creator) save', () => {
       id: 'testId'
     })
 
-
     expect(yield iter.nextValue()).to.eql({
       type: testModule.constants.ENTITIES_UPDATE_POST,
-      payload: 'giles'
+      payload: {
+        method: 'post',
+        value: 'giles'
+      }
     })
 
     yield iter.shouldComplete()
@@ -2863,18 +2957,19 @@ describe('(Action Creator) remove', () => {
       ]))
     }
     getDeletePath.returns('test delete path')
-    const iter = remove('testId')({ apiClient })(undefined, {
+    const iter = remove({Id: 'testId'})({ apiClient })(undefined, {
       dispatch: _dispatchSpy,
       getState: _getStateSpy
     }).toAsyncIterator()
 
-    expect(getDeletePath.getCall(0).args[0]).to.equal('testId')
+    expect(getDeletePath.getCall(0).args[0]).to.eql({Id: 'testId'})
     expect(apiClient.del.getCall(0).args[0]).to.equal('test delete path')
 
     expect(yield iter.nextValue()).to.eql({
       'type': testModule.constants.ENTITIES_DELETE,
       'id': 'testId'
     })
+
     expect(yield iter.nextValue())
       .to.eql({
         type: testModule.constants.ENTITIES_SAVE_PROGRESS,
@@ -2894,10 +2989,15 @@ describe('(Action Creator) remove', () => {
       type: testModule.constants.ENTITY_UPDATE_PUT,
       payload: 'giles'
     })
-
     expect(yield iter.nextValue()).to.eql({
       type: testModule.constants.ENTITIES_UPDATE_PUT,
-      payload: 'giles'
+      payload: {
+        method: 'put',
+        oldValue: {
+          Id: 'testId'
+        },
+        value: 'giles'
+      }
     })
 
 
