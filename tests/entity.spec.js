@@ -41,6 +41,8 @@ describe('(Redux Module) Nodes', () => {
     dontDoDelete = sinon.stub()
     filter = sinon.stub()
 
+    filter.returns(true)
+
     configureModule({
       name: 'TESTMODULE',
       getJoinId,
@@ -172,8 +174,12 @@ describe('(Redux Module) Nodes', () => {
       expect(reducer).to.be.a('function')
     })
 
-    it('Should initialize with an initial state.', () => {
-      expect(reducer(undefined, {})).to.eql({ loadOrder: 'Name', loadDeleted: false, loadInitial: true })
+    it('Should initialise with an initial state.', () => {
+      expect(reducer(undefined, {})).to.eql({ 
+        loadOrder: 'Name', 
+        loadDeleted: false, 
+        loadInitial: true
+       })
     })
 
     it('Should return the previous state if an action was not matched.', () => {
@@ -1199,9 +1205,9 @@ describe('(Redux Module) Nodes', () => {
           expect(filter.getCall(1).args[1 ]).to.eql('value')
         })
 
-        it('reduced with type "ENTITIES_UPDATE_PUT". filter adds', () => {
-          filter.onCall(0).returns(false)
-          filter.onCall(1).returns(true)
+        it('reduced with type "ENTITIES_UPDATE_PUT". records rowVersion', () => {
+          filter.returns(false)
+
           const state = {
             giles: 'test',
             loadOrder: 'Whatever',
@@ -1221,19 +1227,112 @@ describe('(Redux Module) Nodes', () => {
               value: {
                 Id: 'testId',
                 Name: 'fred',
-                Prop1: 'prop1'
+                Prop1: 'prop1',
+                RowVersion: 'rowVersion'      
               }
             }
           })
           expect(res).to.eql({
             giles: 'test',
             loadOrder: 'Whatever',
+            rowVersions: {
+              rowVersion: true
+            },
+            data: {
+              TotalCount: 10,
+              Values: [
+              ]
+            },
+            singleData: undefined
+          })
+        })
+
+        it('reduced with type "ENTITIES_UPDATE_PUT". row version prevents second run', () => {
+          //put is an add
+          filter.onCall(0).returns(false)
+
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+              ]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              method: 'put',
+              oldValue: {
+                
+              },
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1',
+                RowVersion: 'rowVersion'      
+              }
+            }
+          })
+
+          expect(res.data.TotalCount).to.equal(11)
+          const res2 = reducer(res, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              method: 'put',
+              oldValue: {
+                
+              },
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1',
+                RowVersion: 'rowVersion'      
+              }
+            }
+          })
+          expect(res2.data.TotalCount).to.equal(11)
+        })
+
+
+        it('reduced with type "ENTITIES_UPDATE_PUT". filter adds', () => {
+          //put is an add
+          filter.onCall(0).returns(false)
+
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+              ]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_PUT,
+            payload: {
+              method: 'put',
+              oldValue: {
+                
+              },
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1'      
+              }
+            }
+          })
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            rowVersions: {},
             data: {
               TotalCount: 11,
               Values: [
                 {
-                  'Id': 'testId',
-                  'Name': 'fred',
+                  Id: 'testId',
+                  Name: 'fred',
                   Prop1: 'prop1'
                 }
               ]
@@ -1243,8 +1342,7 @@ describe('(Redux Module) Nodes', () => {
         })
 
         it('reduced with type "ENTITIES_UPDATE_PUT".  filter leaves', () => {
-          filter.onCall(0).returns(true)
-          filter.onCall(1).returns(true)
+          
           const state = {
             giles: 'test',
             loadOrder: 'Whatever',
@@ -1276,6 +1374,7 @@ describe('(Redux Module) Nodes', () => {
           expect(res).to.eql({
             giles: 'test',
             loadOrder: 'Whatever',
+            rowVersions: {},
             data: {
               TotalCount: 10,
               Values: [
@@ -1291,8 +1390,9 @@ describe('(Redux Module) Nodes', () => {
           })
         })
         it('reduced with type "ENTITIES_UPDATE_PUT".  filter removes', () => {
-          filter.onCall(0).returns(true)
+          
           filter.onCall(1).returns(false)
+          
           const state = {
             giles: 'test',
             loadOrder: 'Whatever',
@@ -1324,6 +1424,7 @@ describe('(Redux Module) Nodes', () => {
           expect(res).to.eql({
             giles: 'test',
             loadOrder: 'Whatever',
+            rowVersions: {},
             data: {
               TotalCount: 9,
               Values: [
@@ -1334,8 +1435,7 @@ describe('(Redux Module) Nodes', () => {
         })
 
         it('reduced with type "ENTITIES_UPDATE_PUT with no data".', () => {
-          filter.onCall(0).returns(true)
-          filter.onCall(1).returns(true)
+          
           const state = {
             giles: 'test',
             loadOrder: 'Whatever',
@@ -1354,6 +1454,7 @@ describe('(Redux Module) Nodes', () => {
           expect(res).to.eql({
             giles: 'test',
             loadOrder: 'Whatever',
+            rowVersions: {},
             data: {
               TotalCount: undefined,
               Values: []
@@ -1385,6 +1486,7 @@ describe('(Redux Module) Nodes', () => {
           expect(res).to.eql({
             giles: 'test',
             loadOrder: 'Whatever',
+            rowVersions: {},
             data: {
               TotalCount: undefined,
               Values: []
@@ -1399,7 +1501,7 @@ describe('(Redux Module) Nodes', () => {
 
         it('reduced with type "ENTITIES_UPDATE_PUT" filter adds default order.', () => {
           filter.onCall(0).returns(false)
-          filter.onCall(1).returns(true)
+          
           const state = {
             giles: 'test',
             loadDeleted: true,
@@ -1431,6 +1533,7 @@ describe('(Redux Module) Nodes', () => {
             'giles': 'test',
             loadDeleted: true,
             loadOrder: 'Id',
+            rowVersions: {},
             'data': {
               TotalCount: 12,
               Values: [{
@@ -1448,8 +1551,9 @@ describe('(Redux Module) Nodes', () => {
           })
         })
         it('reduced with type "ENTITIES_UPDATE_PUT" filter adds reverse order.', () => {
+          
           filter.onCall(0).returns(false)
-          filter.onCall(1).returns(true)
+                    
           const state = {
             giles: 'test',
             loadDeleted: true,
@@ -1478,6 +1582,7 @@ describe('(Redux Module) Nodes', () => {
             'giles': 'test',
             loadDeleted: true,
             loadOrder: '-Id',
+            rowVersions: {},
             'data': {
               TotalCount: 12,
               Values: [{
@@ -1502,8 +1607,110 @@ describe('(Redux Module) Nodes', () => {
         beforeEach(() => {
           ENTITIES_UPDATE_POST = testModule.constants.ENTITIES_UPDATE_POST
         })
+        it('reduced with type "ENTITIES_UPDATE_POST".  filter called', () => {
+          const state = {
+            loadDefaults: 'loadDefaults',
+            data: {
+              Values: []
+            }
+          }
+          reducer(state, {
+            type: ENTITIES_UPDATE_POST,
+            payload: {
+              method: 'post',
+              value: 'value'
+            }
+          })
+
+          expect(filter.getCall(0).args[0]).to.eql('loadDefaults')
+          expect(filter.getCall(0).args[1]).to.eql('value')
+        })
+
+
+        it('reduced with type "ENTITIES_UPDATE_POST". records rowVersion', () => {
+          filter.returns(false)
+
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+              ]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_POST,
+            payload: {
+              method: 'post',
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1',
+                RowVersion: 'rowVersion'      
+              }
+            }
+          })
+          expect(res).to.eql({
+            giles: 'test',
+            loadOrder: 'Whatever',
+            rowVersions: {
+              rowVersion: true
+            },
+            data: {
+              TotalCount: 10,
+              Values: [
+              ]
+            }
+          })
+        })
+
+        it('reduced with type "ENTITIES_UPDATE_POST". row version prevents second run', () => {
+          //put is an add
+          
+          const state = {
+            giles: 'test',
+            loadOrder: 'Whatever',
+            data: {
+              TotalCount: 10,
+              Values: [
+              ]
+            }
+          }
+          const res = reducer(state, {
+            type: ENTITIES_UPDATE_POST,
+            payload: {
+              method: 'post',
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1',
+                RowVersion: 'rowVersion'      
+              }
+            }
+          })
+
+          expect(res.data.TotalCount).to.equal(11)
+          const res2 = reducer(res, {
+            type: ENTITIES_UPDATE_POST,
+            payload: {
+              method: 'post',
+              value: {
+                Id: 'testId',
+                Name: 'fred',
+                Prop1: 'prop1',
+                RowVersion: 'rowVersion'      
+              }
+            }
+          })
+          expect(res2.data.TotalCount).to.equal(11)
+        })
+
+
+
 
         it('reduced with type "ENTITIES_UPDATE_POST". adding new default order (Name)', () => {
+          
           const state = {
             giles: 'test',
             loadOrder: 'Name',
@@ -1530,6 +1737,7 @@ describe('(Redux Module) Nodes', () => {
           expect(res).to.eql({
             'giles': 'test',
             loadOrder: 'Name',
+            rowVersions: {},
             'data': {
               TotalCount: 13,
               Values: [{
@@ -1547,6 +1755,7 @@ describe('(Redux Module) Nodes', () => {
         })
 
         it('reduced with type "ENTITIES_UPDATE_POST". adding new reverse order (-Name)', () => {
+          
           const state = {
             giles: 'test',
             loadOrder: '-Name',
@@ -1573,6 +1782,7 @@ describe('(Redux Module) Nodes', () => {
           expect(res).to.eql({
             'giles': 'test',
             loadOrder: '-Name',
+            rowVersions: {},
             'data': {
               TotalCount: 13,
               Values: [{
@@ -1588,11 +1798,14 @@ describe('(Redux Module) Nodes', () => {
             }
           })
 
-          it('reduced with type "ENTITIES_UPDATE_POST". posting existing', () => {
+        })
+        it('reduced with type "ENTITIES_UPDATE_POST". posting existing', () => {
+            
             const state = {
               giles: 'test',
               loadOrder: 'Whatever',
               data: {
+                TotalCount: 13,
                 Values: [{
                   Id: 'testId',
                   Name: 'giles',
@@ -1614,7 +1827,9 @@ describe('(Redux Module) Nodes', () => {
             expect(res).to.eql({
               'giles': 'test',
               loadOrder: 'Whatever',
+              rowVersions: {},
               'data': {
+                TotalCount: 13,
                 Values: [{
                   'Id': 'testId',
                   'Prop1': 'prop1',
@@ -1623,7 +1838,73 @@ describe('(Redux Module) Nodes', () => {
               }
             })
           })
-        })
+        
+          it('reduced with type "ENTITIES_UPDATE_POST". posting existing filter excludes', () => {
+            filter.onCall(0).returns(false)
+            const state = {
+              giles: 'test',
+              loadOrder: 'Whatever',
+              data: {
+                TotalCount: 13,
+                Values: [{
+                  Id: 'testId',
+                  Name: 'giles',
+                  Prop: 'prop'
+                }]
+              }
+            }
+            const res = reducer(state, {
+              type: ENTITIES_UPDATE_POST,
+              payload: {
+                method: 'post',
+                value: {
+                  Id: 'testId',
+                  Prop1: 'prop1',
+                  Name: 'fred2'
+                }
+              }
+            })
+            expect(res).to.eql({
+              'giles': 'test',
+              loadOrder: 'Whatever',
+              rowVersions: {},
+              'data': {
+                TotalCount: 12,
+                Values: []
+              }
+            })
+          })
+          it('reduced with type "ENTITIES_UPDATE_POST". posting new filter excludes', () => {
+            filter.onCall(0).returns(false)
+            const state = {
+              giles: 'test',
+              loadOrder: 'Whatever',
+              data: {
+                TotalCount: 13,
+                Values: []
+              }
+            }
+            const res = reducer(state, {
+              type: ENTITIES_UPDATE_POST,
+              payload: {
+                method: 'post',
+                value: {
+                  Id: 'testId',
+                  Prop1: 'prop1',
+                  Name: 'fred2'
+                }
+              }
+            })
+            expect(res).to.eql({
+              'giles': 'test',
+              loadOrder: 'Whatever',
+              rowVersions: {},
+              'data': {
+                TotalCount: 13,
+                Values: []
+              }
+            })
+          })
       })
       describe('type: ENTITIES_UPDATE_DELETE', () => {
         let ENTITIES_UPDATE_DELETE
@@ -1658,6 +1939,7 @@ describe('(Redux Module) Nodes', () => {
           })
           expect(res).to.eql({
             'giles': 'test',
+            rowVersions: {},            
             'data': {
               TotalCount: 1,
               Values: [

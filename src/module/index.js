@@ -539,10 +539,7 @@ const upload = ({
       const deleted = state.loadDeleted 
       const ret = values
         .map(value=>value)
-        .filter(value => dontDoDelete() 
-          || (value.IsDeleted && deleted) 
-          || (!value.IsDeleted && !deleted)
-        ) 
+        .filter(value => filter(state.loadDefaults, value))
         .sort((a,b) =>{
           const aa = a[field] && a[field].toLowerCase ? a[field].toLowerCase() : a[field]
           const bb = b[field] && b[field].toLowerCase ? b[field].toLowerCase() : b[field]
@@ -723,6 +720,9 @@ const upload = ({
       })
     },
     [ENTITIES_UPDATE_PUT]: (state, action) => {
+      if(state.rowVersions && state.rowVersions[action.payload.value.RowVersion]) {
+        return state
+      }
       const prevIn = filter(state.loadDefaults, action.payload.oldValue)
       const newIn = filter(state.loadDefaults, action.payload.value)
       //total count changes with deletion
@@ -731,9 +731,10 @@ const upload = ({
         : (newIn && !prevIn
           ? 1
           : 0) 
+      
       if(state.data && state.data.Values) {
         if(newIn) {
-          const found = state.data.Values.find(state => state.Id === action.payload.value.Id)
+          const found = state.data.Values.find(value => value.Id === action.payload.value.Id)
           const replace = {
             ...found, 
             ...action.payload.value
@@ -749,6 +750,14 @@ const upload = ({
       }      
       return {
         ...state,
+        rowVersions: {
+          ...state.rowVersions,
+          ...action.payload.value.RowVersion 
+            ? {
+              [action.payload.value.RowVersion]: true
+            }
+            : null
+        },
         singleData: state.singleData 
           && action.payload.value.Id === state.singleData.Id 
             ? action.payload.value 
@@ -761,18 +770,38 @@ const upload = ({
       }
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
-      
+      if(state.rowVersions && state.rowVersions[action.payload.value.RowVersion]) {
+        return state
+      }
+      const newIn = filter(state.loadDefaults, action.payload.value)
       const found = state.data.Values.find(state => state.Id === action.payload.value.Id)
-      const deleted = state.loadDeleted 
-      const totalCountChange = !deleted && !found ? 1 : 0 
-      if (found) {
-        const replace = {...action.payload.value}
-        state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)
+      const totalCountChange = newIn && !found 
+        ? 1 
+        :(
+          (!newIn && found) ? -1 :0
+        )
+      if(found) {
+        if(newIn) {
+          const replace = {...action.payload.value}
+          state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)  
+        } else {
+          state.data.Values = state.data.Values.filter(state => state.Id !== action.payload.value.Id)
+        }
       } else {
-        state.data.Values.push(action.payload.value)
+        if(newIn) {
+          state.data.Values.push(action.payload.value)
+        }
       }
       return {
         ...state, 
+        rowVersions: {
+          ...state.rowVersions,
+          ...action.payload.value.RowVersion 
+            ? {
+              [action.payload.value.RowVersion]: true
+            }
+            : null
+        },
         data: {
           ...state.data, 
           TotalCount: state.data && state.data.TotalCount + totalCountChange, 
@@ -783,8 +812,19 @@ const upload = ({
     //nb delete guarantees the subscribed data will have lost an entity
     //ie its not for CRUD deletes. CRUD deletes are puts with IsDeleted=true
     [ENTITIES_UPDATE_DELETE]: (state, action) => {
+      if(state.rowVersions && state.rowVersions[action.payload.value.RowVersion]) {
+        return state
+      }
       return {
         ...state, 
+        rowVersions: {
+          ...state.rowVersions,
+          ...action.payload.value.RowVersion 
+            ? {
+              [action.payload.value.RowVersion]: true
+            }
+            : null
+        },
         data: {
           ...state.data,
           TotalCount: state.data.TotalCount-1, 
@@ -935,7 +975,11 @@ const upload = ({
   // ------------------------------------
   // Reducer
   // ------------------------------------
-  const initialState = {loadOrder: 'Name', loadDeleted: false, loadInitial: true}
+  const initialState = {
+    loadOrder: 'Name', 
+    loadDeleted: false, 
+    loadInitial: true
+  }
   function reducer (state = initialState, action) {
     const handler = ACTION_HANDLERS[action.type]
     return handler ? handler(state, action) : state
