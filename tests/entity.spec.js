@@ -176,8 +176,7 @@ describe('(Redux Module) Nodes', () => {
 
     it('Should initialise with an initial state.', () => {
       expect(reducer(undefined, {})).to.eql({ 
-        loadOrder: 'Name', 
-        loadDeleted: false, 
+        loadDefaults: {}, 
         loadInitial: true
        })
     })
@@ -342,59 +341,9 @@ describe('(Redux Module) Nodes', () => {
             giles: 'test',
             error: null,
             loading: true,
-            loadDeleted: false,
-            loadOrder: 'Name',
             loadInitial: null,
             data: null,
             loadDefaults: 'loadDefaults'
-          })
-        })
-        it('Should be reduced with type ENTITIES_LOAD. deleted true', () => {
-          const res = reducer({
-            giles: 'test',
-            loadInitial: true
-          },
-            {
-              type: ENTITIES_LOAD,
-              payload: {
-                isDeleted: true
-              }
-            })
-
-          expect(res).to.eql({
-            giles: 'test',
-            error: null,
-            loading: true,
-            loadDeleted: true,
-            loadOrder: 'Name',
-            loadInitial: null,
-            data: null,
-            loadDefaults: {
-              isDeleted: true
-            }
-          })
-        })
-        it('Should be reduced with type ENTITIES_LOAD. order', () => {
-          const res = reducer({
-            giles: 'test',
-            loadInitial: true
-          }, {
-              type: ENTITIES_LOAD,
-              payload: {
-                order: 'orderMe'
-              }
-            })
-          expect(res).to.eql({
-            giles: 'test',
-            error: null,
-            loading: true,
-            loadDeleted: false,
-            loadOrder: 'orderMe',
-            loadInitial: null,
-            data: null,
-            loadDefaults: {
-              order: 'orderMe'
-            }
           })
         })
       })
@@ -1197,7 +1146,6 @@ describe('(Redux Module) Nodes', () => {
               value: 'value'
             }
           })
-
           expect(filter.getCall(0).args[0]).to.eql('loadDefaults')
           expect(filter.getCall(0).args[1]).to.eql('oldValue')
           
@@ -1556,8 +1504,12 @@ describe('(Redux Module) Nodes', () => {
                     
           const state = {
             giles: 'test',
-            loadDeleted: true,
-            loadOrder: '-Id',
+            loadDefaults: {
+              query: {
+                isDeleted: true,
+                order: '-Id'
+              }
+            },
             data: {
               TotalCount: 11,
               Values: [{
@@ -1580,8 +1532,12 @@ describe('(Redux Module) Nodes', () => {
           })
           expect(res).to.eql({
             'giles': 'test',
-            loadDeleted: true,
-            loadOrder: '-Id',
+            loadDefaults: {
+              query: {
+                isDeleted: true,
+                order: '-Id'
+              }
+            },
             rowVersions: {},
             'data': {
               TotalCount: 12,
@@ -1713,7 +1669,11 @@ describe('(Redux Module) Nodes', () => {
           
           const state = {
             giles: 'test',
-            loadOrder: 'Name',
+            loadDefaults: {
+              query: {
+                order: 'Name'
+              }
+            },
             data: {
               TotalCount: 12,
               Values: [{
@@ -1736,7 +1696,11 @@ describe('(Redux Module) Nodes', () => {
           })
           expect(res).to.eql({
             'giles': 'test',
-            loadOrder: 'Name',
+            loadDefaults: {
+              query: {
+                order: 'Name'
+              }
+            },
             rowVersions: {},
             'data': {
               TotalCount: 13,
@@ -2283,7 +2247,7 @@ describe('(Action Creator) load', () => {
           dispatch: _dispatchSpy,
           getState: _getStateSpy
         }).toAsyncIterator()
-        expect(getLoadDefaults.getCall(0).args[0]).to.eql({ giles: 'giles', isDeleted: undefined })
+        expect(getLoadDefaults.getCall(0).args[0]).to.eql({ giles: 'giles' })
 
         getLoadPath.returns('testLoadPath')
         expect(yield iter.nextValue()).to.eql({
@@ -2304,7 +2268,7 @@ describe('(Action Creator) load', () => {
           })
 
         expect(apiClient.get.getCall(0).args[0]).to.equal('testLoadPath')
-        expect(getJoinId.getCall(0).args[0]).to.eql({ giles: 'giles', isDeleted: undefined })
+        expect(getJoinId.getCall(0).args[0]).to.eql({ giles: 'giles' })
         expect(joinSpy.getCall(0).args[0]).to.equal('test join Id')
 
 
@@ -2532,7 +2496,7 @@ describe('(Action Creator) load', () => {
           dispatch: _dispatchSpy,
           getState: _getStateSpy
         }).toAsyncIterator()
-        expect(getLoadDefaults.getCall(0).args[0]).to.eql({ giles: 'giles', isDeleted: undefined })
+        expect(getLoadDefaults.getCall(0).args[0]).to.eql({ giles: 'giles' })
         yield iter.shouldComplete()
       })
     })

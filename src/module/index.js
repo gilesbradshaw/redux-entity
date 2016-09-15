@@ -24,7 +24,6 @@ const getModule = ({
   postConvert,
   signalRRetry=10000,
   getNew = ()=> null,
-  dontDoDelete=()=>false,
   filter= (payload) => null
 }) => {
   const ENTITIES_UPDATE_PUT = 'react-dealerweb/ENTITIES_UPDATE_PUT:' + name
@@ -156,14 +155,10 @@ const getModule = ({
   }
   const load = (loadConfig={}) => 
     ({signalR, apiClient}) => {
-      const _loadConfig={
-        ...loadConfig, 
-        isDeleted: loadConfig.isDeleted && loadConfig.isDeleted!='false'
-      }
-      const loadDefaults = getLoadDefaults(_loadConfig)
+      const loadDefaults = getLoadDefaults(loadConfig)
       return (actions, {getState}) => {
         if(getLoadHasChanged({loadDefaults, getState})) {
-          return join(_loadConfig)({signalR, apiClient})
+          return join(loadConfig)({signalR, apiClient})
             .switchMap(changes => {
               const observedMessages = replayer(changes)
               const path = getLoadPath(loadDefaults)
@@ -205,9 +200,7 @@ const getModule = ({
 
   const loadErrorCancel = () => ({ type: ENTITIES_LOAD_FAIL_CANCEL})
   
-  const loadMore = (loadConfig) => 
-    {
-      console.log('load more', loadConfig)
+  const loadMore = (loadConfig) => {
     return ({apiClient}) =>   
       (actions, {getState}) => 
         apiClient.get(getLoadPath(getLoadDefaults(loadConfig)))
@@ -530,13 +523,13 @@ const upload = ({
         id: values.Id
       })
   }
-
   // orders and filters data according to state
   const orderData = (values, state) => {
-    if(state.loadOrder) {
-      const back = state.loadOrder[0] === '-'
-      const field = back ? state.loadOrder.substring(1) : state.loadOrder
-      const deleted = state.loadDeleted 
+    const loadOrder = state.loadDefaults && state.loadDefaults.query && state.loadDefaults.query.order 
+    
+    if(loadOrder) {
+      const back = loadOrder[0] === '-'
+      const field = back ? loadOrder.substring(1) : loadOrder
       const ret = values
         .map(value=>value)
         .filter(value => filter(state.loadDefaults, value))
@@ -568,8 +561,6 @@ const upload = ({
       loadInitial: null,
       error: null, 
       loading: true, 
-      loadOrder: action.payload.order || 'Name',  
-      loadDeleted: action.payload.isDeleted || false,
       loadDefaults: action.payload
     }),
     [ENTITIES_LOAD_SUCCESS]: (state, action) => ({ 
@@ -726,29 +717,34 @@ const upload = ({
       const prevIn = filter(state.loadDefaults, action.payload.oldValue)
       const newIn = filter(state.loadDefaults, action.payload.value)
       //total count changes with deletion
+      
       const totalCountChange = prevIn & !newIn 
         ? -1
         : (newIn && !prevIn
           ? 1
           : 0) 
       
+      let data = state.data && state.data.Values
+        ? [...state.data.Values]
+        : []
+      
       if(state.data && state.data.Values) {
         if(newIn) {
-          const found = state.data.Values.find(value => value.Id === action.payload.value.Id)
+          const found = data.find(value => value.Id === action.payload.value.Id)
           const replace = {
             ...found, 
             ...action.payload.value
           }
-          if(state.data.Values.indexOf(found) > -1) {
-            state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)
+          if(data.indexOf(found) > -1) {
+            data.splice(data.indexOf(found), 1, replace)
           } else {
-            state.data.Values.push(replace)
+            data.push(replace)
           }
         } else {
-         state.data.Values = state.data.Values.filter(state => state.Id !== action.payload.value.Id) 
+         data = data.filter(state => state.Id !== action.payload.value.Id) 
         }
-      }      
-      return {
+      }   
+      const ret = {
         ...state,
         rowVersions: {
           ...state.rowVersions,
@@ -765,31 +761,36 @@ const upload = ({
         data: {
           ...state.data,
           TotalCount: state.data && state.data.TotalCount + totalCountChange, 
-          Values: state.data && state.data.Values ? orderData(state.data.Values, state) : []
+          Values: orderData(data, state)
         }
       }
+      return ret
     },
     [ENTITIES_UPDATE_POST]: (state, action) => {
       if(state.rowVersions && state.rowVersions[action.payload.value.RowVersion]) {
         return state
       }
+      let data = state.data && state.data.Values
+        ? [...state.data.Values]
+        : []
       const newIn = filter(state.loadDefaults, action.payload.value)
-      const found = state.data.Values.find(state => state.Id === action.payload.value.Id)
+      const found = data.find(state => state.Id === action.payload.value.Id)
       const totalCountChange = newIn && !found 
         ? 1 
         :(
           (!newIn && found) ? -1 :0
         )
+      
       if(found) {
         if(newIn) {
           const replace = {...action.payload.value}
-          state.data.Values.splice(state.data.Values.indexOf(found), 1, replace)  
+          data.splice(data.indexOf(found), 1, replace)  
         } else {
-          state.data.Values = state.data.Values.filter(state => state.Id !== action.payload.value.Id)
+          data = data.filter(state => state.Id !== action.payload.value.Id)
         }
       } else {
         if(newIn) {
-          state.data.Values.push(action.payload.value)
+          data.push(action.payload.value)
         }
       }
       return {
@@ -805,7 +806,7 @@ const upload = ({
         data: {
           ...state.data, 
           TotalCount: state.data && state.data.TotalCount + totalCountChange, 
-          Values: orderData(state.data.Values, state)
+          Values: orderData(data, state)
         }
       }
     },
@@ -976,8 +977,7 @@ const upload = ({
   // Reducer
   // ------------------------------------
   const initialState = {
-    loadOrder: 'Name', 
-    loadDeleted: false, 
+    loadDefaults: {}, 
     loadInitial: true
   }
   function reducer (state = initialState, action) {
